@@ -4,6 +4,7 @@ import { Fingerprint, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { checkLocationPermission, getCurrentLocation } from '@/utils/locationUtils';
 
 interface BiometricScannerProps {
   onSuccess: (location: { lat: number, lng: number }) => void;
@@ -14,58 +15,10 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({ onSuccess }) => {
   const [locationDenied, setLocationDenied] = useState(false);
   const { toast } = useToast();
 
-  const checkLocationPermission = () => {
-    return new Promise<boolean>((resolve) => {
-      if (!navigator.geolocation) {
-        toast({
-          title: "Geolocation not supported",
-          description: "Your browser doesn't support geolocation.",
-          variant: "destructive",
-        });
-        setLocationDenied(true);
-        resolve(false);
-        return;
-      }
-
-      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
-        if (result.state === 'denied') {
-          toast({
-            title: "Location access denied",
-            description: "Please enable location access to check in.",
-            variant: "destructive",
-          });
-          setLocationDenied(true);
-          resolve(false);
-        } else {
-          setLocationDenied(false);
-          resolve(true);
-        }
-      }).catch(() => {
-        // Fallback to direct geolocation request if permissions API is not supported
-        navigator.geolocation.getCurrentPosition(
-          () => {
-            setLocationDenied(false);
-            resolve(true);
-          },
-          () => {
-            toast({
-              title: "Location access denied",
-              description: "Please enable location access to check in.",
-              variant: "destructive",
-            });
-            setLocationDenied(true);
-            resolve(false);
-          },
-          { timeout: 5000 }
-        );
-      });
-    });
-  };
-
   const handleScan = async () => {
     if (scanning) return;
     
-    const hasLocationPermission = await checkLocationPermission();
+    const hasLocationPermission = await checkLocationPermission(setLocationDenied, toast);
     if (!hasLocationPermission) return;
     
     setScanning(true);
@@ -76,34 +29,28 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({ onSuccess }) => {
     });
     
     // Simulate fingerprint scanning process
-    setTimeout(() => {
-      // Get current location
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-          
-          toast({
-            title: "Fingerprint verified",
-            description: "Location captured successfully",
-            variant: "default",
-          });
-          
-          setScanning(false);
-          onSuccess(location);
-        },
-        (error) => {
-          console.error("Geolocation error:", error);
-          toast({
-            title: "Location error",
-            description: "Could not get your location. Please try again.",
-            variant: "destructive",
-          });
-          setScanning(false);
-        }
-      );
+    setTimeout(async () => {
+      try {
+        // Get current location
+        const location = await getCurrentLocation();
+        
+        toast({
+          title: "Fingerprint verified",
+          description: "Location captured successfully",
+          variant: "default",
+        });
+        
+        setScanning(false);
+        onSuccess(location);
+      } catch (error) {
+        console.error("Geolocation error:", error);
+        toast({
+          title: "Location error",
+          description: "Could not get your location. Please try again.",
+          variant: "destructive",
+        });
+        setScanning(false);
+      }
     }, 2000);
   };
 
