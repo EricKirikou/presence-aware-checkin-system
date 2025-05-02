@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import BiometricScanner from './BiometricScanner';
+import { MapPin } from 'lucide-react';
 
 interface AttendanceFormProps {
   onSubmit: (data: {
@@ -21,10 +22,63 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
   const [status, setStatus] = useState<'present' | 'absent' | 'late'>('present');
   const [method, setMethod] = useState<'biometric' | 'manual'>('biometric');
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationDenied, setLocationDenied] = useState(false);
   const { toast } = useToast();
 
-  const handleManualSubmit = () => {
-    // For manual check-in, try to get location
+  const checkLocationPermission = () => {
+    return new Promise<boolean>((resolve) => {
+      if (!navigator.geolocation) {
+        toast({
+          title: "Geolocation not supported",
+          description: "Your browser doesn't support geolocation.",
+          variant: "destructive",
+        });
+        setLocationDenied(true);
+        resolve(false);
+        return;
+      }
+
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        if (result.state === 'denied') {
+          toast({
+            title: "Location access denied",
+            description: "Please enable location access to check in.",
+            variant: "destructive",
+          });
+          setLocationDenied(true);
+          resolve(false);
+        } else {
+          setLocationDenied(false);
+          resolve(true);
+        }
+      }).catch(() => {
+        // Fallback to direct geolocation request if permissions API is not supported
+        navigator.geolocation.getCurrentPosition(
+          () => {
+            setLocationDenied(false);
+            resolve(true);
+          },
+          () => {
+            toast({
+              title: "Location access denied",
+              description: "Please enable location access to check in.",
+              variant: "destructive",
+            });
+            setLocationDenied(true);
+            resolve(false);
+          },
+          { timeout: 5000 }
+        );
+      });
+    });
+  };
+
+  const handleManualSubmit = async () => {
+    // Check for location permission first
+    const hasLocationPermission = await checkLocationPermission();
+    if (!hasLocationPermission) return;
+    
+    // Now get the location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -39,26 +93,12 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
           console.error("Geolocation error:", error);
           toast({
             title: "Location error",
-            description: "Could not get your current location. Using default location.",
+            description: "Could not get your location. Please try again.",
             variant: "destructive",
           });
-          
-          // Use a default location if geolocation fails
-          const defaultLocation = { lat: 40.7128, lng: -74.0060 };
-          setLocation(defaultLocation);
-          submitAttendance(defaultLocation);
+          setLocationDenied(true);
         }
       );
-    } else {
-      toast({
-        title: "Geolocation not supported",
-        description: "Your browser doesn't support geolocation. Using default location.",
-        variant: "destructive",
-      });
-      
-      const defaultLocation = { lat: 40.7128, lng: -74.0060 };
-      setLocation(defaultLocation);
-      submitAttendance(defaultLocation);
     }
   };
 
@@ -135,11 +175,23 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
 
           <Separator />
 
+          {locationDenied && (
+            <div className="bg-red-50 p-3 rounded-md text-center">
+              <div className="flex items-center justify-center gap-2 text-red-600 mb-1">
+                <MapPin size={16} />
+                <span className="font-medium">Location access required</span>
+              </div>
+              <p className="text-xs text-red-600">
+                Please enable location access in your browser settings to check in
+              </p>
+            </div>
+          )}
+
           {method === 'biometric' ? (
             <BiometricScanner onSuccess={handleBiometricSuccess} />
           ) : (
             <div className="flex justify-center">
-              <Button onClick={handleManualSubmit}>
+              <Button onClick={handleManualSubmit} disabled={locationDenied}>
                 Submit Attendance
               </Button>
             </div>

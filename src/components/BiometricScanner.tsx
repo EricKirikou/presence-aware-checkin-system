@@ -10,14 +10,65 @@ interface BiometricScannerProps {
 
 const BiometricScanner: React.FC<BiometricScannerProps> = ({ onSuccess }) => {
   const [scanning, setScanning] = useState(false);
+  const [locationDenied, setLocationDenied] = useState(false);
   const { toast } = useToast();
 
-  const handleScan = () => {
+  const checkLocationPermission = () => {
+    return new Promise<boolean>((resolve) => {
+      if (!navigator.geolocation) {
+        toast({
+          title: "Geolocation not supported",
+          description: "Your browser doesn't support geolocation.",
+          variant: "destructive",
+        });
+        setLocationDenied(true);
+        resolve(false);
+        return;
+      }
+
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        if (result.state === 'denied') {
+          toast({
+            title: "Location access denied",
+            description: "Please enable location access to check in.",
+            variant: "destructive",
+          });
+          setLocationDenied(true);
+          resolve(false);
+        } else {
+          setLocationDenied(false);
+          resolve(true);
+        }
+      }).catch(() => {
+        // Fallback to direct geolocation request if permissions API is not supported
+        navigator.geolocation.getCurrentPosition(
+          () => {
+            setLocationDenied(false);
+            resolve(true);
+          },
+          () => {
+            toast({
+              title: "Location access denied",
+              description: "Please enable location access to check in.",
+              variant: "destructive",
+            });
+            setLocationDenied(true);
+            resolve(false);
+          },
+          { timeout: 5000 }
+        );
+      });
+    });
+  };
+
+  const handleScan = async () => {
     if (scanning) return;
+    
+    const hasLocationPermission = await checkLocationPermission();
+    if (!hasLocationPermission) return;
     
     setScanning(true);
     
-    // Show toast for scanning
     toast({
       title: "Scanning fingerprint...",
       description: "Please hold still",
@@ -26,49 +77,32 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({ onSuccess }) => {
     // Simulate fingerprint scanning process
     setTimeout(() => {
       // Get current location
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const location = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            };
-            
-            // Simulate success
-            toast({
-              title: "Fingerprint verified",
-              description: "Location captured successfully",
-              variant: "default",
-            });
-            
-            setScanning(false);
-            onSuccess(location);
-          },
-          (error) => {
-            console.error("Geolocation error:", error);
-            toast({
-              title: "Location error",
-              description: "Could not get your current location. Using default location.",
-              variant: "destructive",
-            });
-            
-            // Provide a default location if geolocation fails
-            const defaultLocation = { lat: 40.7128, lng: -74.0060 };
-            setScanning(false);
-            onSuccess(defaultLocation);
-          }
-        );
-      } else {
-        toast({
-          title: "Geolocation not supported",
-          description: "Your browser doesn't support geolocation. Using default location.",
-          variant: "destructive",
-        });
-        
-        const defaultLocation = { lat: 40.7128, lng: -74.0060 };
-        setScanning(false);
-        onSuccess(defaultLocation);
-      }
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          
+          toast({
+            title: "Fingerprint verified",
+            description: "Location captured successfully",
+            variant: "default",
+          });
+          
+          setScanning(false);
+          onSuccess(location);
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          toast({
+            title: "Location error",
+            description: "Could not get your location. Please try again.",
+            variant: "destructive",
+          });
+          setScanning(false);
+        }
+      );
     }, 2000);
   };
 
@@ -77,7 +111,8 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({ onSuccess }) => {
       <div 
         className={cn(
           "fingerprint-scanner cursor-pointer",
-          scanning && "scanning pulse-animation"
+          scanning && "scanning pulse-animation",
+          locationDenied && "opacity-50"
         )}
         onClick={handleScan}
         role="button"
@@ -86,14 +121,18 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({ onSuccess }) => {
         <Fingerprint
           size={48}
           className={cn(
-            "text-gray-600",
-            scanning && "text-green-500"
+            scanning ? "text-green-500" : locationDenied ? "text-red-400" : "text-gray-600"
           )}
         />
       </div>
       <p className="text-sm text-center text-muted-foreground">
-        {scanning ? "Scanning..." : "Tap to scan fingerprint"}
+        {scanning ? "Scanning..." : locationDenied ? "Location access required" : "Tap to scan fingerprint"}
       </p>
+      {locationDenied && (
+        <p className="text-xs text-red-500 text-center">
+          Please enable location access in your browser settings
+        </p>
+      )}
     </div>
   );
 };
