@@ -7,7 +7,7 @@ import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { checkLocationPermission, getCurrentLocation } from '@/utils/locationUtils';
 
 interface BiometricScannerProps {
-  onSuccess: (location: { lat: number, lng: number }) => void;
+  onSuccess: (location: { lat: number, lng: number, locationName?: string }) => void;
 }
 
 const BiometricScanner: React.FC<BiometricScannerProps> = ({ onSuccess }) => {
@@ -31,12 +31,14 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({ onSuccess }) => {
     // Simulate fingerprint scanning process
     setTimeout(async () => {
       try {
-        // Get current location
+        // Get current location with location name
         const location = await getCurrentLocation();
         
         toast({
           title: "Fingerprint verified",
-          description: "Location captured successfully",
+          description: location.locationName ? 
+            `Location: ${location.locationName}` : 
+            "Location captured successfully",
           variant: "default",
         });
         

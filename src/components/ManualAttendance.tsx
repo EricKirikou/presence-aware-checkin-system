@@ -10,7 +10,7 @@ interface ManualAttendanceProps {
   status: 'present' | 'absent' | 'late';
   setStatus: React.Dispatch<React.SetStateAction<'present' | 'absent' | 'late'>>;
   locationDenied: boolean;
-  onSubmitManual: (location: { lat: number; lng: number }) => void;
+  onSubmitManual: (location: { lat: number; lng: number; locationName?: string }) => void;
 }
 
 const ManualAttendance: React.FC<ManualAttendanceProps> = ({ 
@@ -30,7 +30,7 @@ const ManualAttendance: React.FC<ManualAttendanceProps> = ({
       );
       if (!hasLocationPermission) return;
       
-      // Now get the location
+      // Now get the location with locationName
       const currentLocation = await getCurrentLocation();
       onSubmitManual(currentLocation);
     } catch (error) {

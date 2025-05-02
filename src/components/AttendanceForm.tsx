@@ -14,7 +14,7 @@ interface AttendanceFormProps {
   onSubmit: (data: {
     status: 'present' | 'absent' | 'late';
     method: 'biometric' | 'manual';
-    location: { lat: number; lng: number } | null;
+    location: { lat: number; lng: number; locationName?: string } | null;
     timestamp: Date;
   }) => void;
 }
@@ -22,21 +22,21 @@ interface AttendanceFormProps {
 const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
   const [status, setStatus] = useState<'present' | 'absent' | 'late'>('present');
   const [method, setMethod] = useState<'biometric' | 'manual'>('biometric');
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lng: number; locationName?: string } | null>(null);
   const [locationDenied, setLocationDenied] = useState(false);
   const { toast } = useToast();
 
-  const handleBiometricSuccess = (biometricLocation: { lat: number, lng: number }) => {
+  const handleBiometricSuccess = (biometricLocation: { lat: number, lng: number, locationName?: string }) => {
     setLocation(biometricLocation);
     submitAttendance(biometricLocation);
   };
 
-  const handleManualSubmit = (submitLocation: { lat: number, lng: number }) => {
+  const handleManualSubmit = (submitLocation: { lat: number, lng: number, locationName?: string }) => {
     setLocation(submitLocation);
     submitAttendance(submitLocation);
   };
 
-  const submitAttendance = (submitLocation: { lat: number, lng: number }) => {
+  const submitAttendance = (submitLocation: { lat: number, lng: number, locationName?: string }) => {
     onSubmit({
       status,
       method,
@@ -46,7 +46,9 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
 
     toast({
       title: "Check-in successful",
-      description: `You've been marked as ${status} at ${new Date().toLocaleTimeString()}`,
+      description: submitLocation.locationName ? 
+        `You've been marked as ${status} at ${submitLocation.locationName}` :
+        `You've been marked as ${status} at ${new Date().toLocaleTimeString()}`,
     });
   };
 
@@ -102,7 +104,7 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
       </CardContent>
       <CardFooter className="text-xs text-muted-foreground">
         {location ? (
-          <p>Location captured: {location.lat.toFixed(6)}, {location.lng.toFixed(6)}</p>
+          <p>Location captured: {location.locationName || `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`}</p>
         ) : (
           <p>Your location will be recorded when you check in</p>
         )}

@@ -15,6 +15,7 @@ export interface AttendanceRecord {
   location: {
     lat: number;
     lng: number;
+    locationName?: string;
   } | null;
 }
 
@@ -72,7 +73,7 @@ const AttendanceCard: React.FC<AttendanceCardProps> = ({ record }) => {
           <div className="flex items-center space-x-1 text-muted-foreground">
             <MapPin className="h-3 w-3" />
             <span>
-              {record.location.lat.toFixed(6)}, {record.location.lng.toFixed(6)}
+              {record.location.locationName || `${record.location.lat.toFixed(6)}, ${record.location.lng.toFixed(6)}`}
             </span>
           </div>
         )}

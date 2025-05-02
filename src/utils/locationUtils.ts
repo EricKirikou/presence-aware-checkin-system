@@ -61,17 +61,61 @@ export const checkLocationPermission = (
  * @returns Promise that resolves to location coordinates
  */
 export const getCurrentLocation = () => {
-  return new Promise<{ lat: number, lng: number }>((resolve, reject) => {
+  return new Promise<{ lat: number, lng: number, locationName?: string }>((resolve, reject) => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        resolve({
+        const coordinates = {
           lat: position.coords.latitude,
           lng: position.coords.longitude
-        });
+        };
+        
+        // Get location name using reverse geocoding
+        getLocationName(coordinates.lat, coordinates.lng)
+          .then(locationName => {
+            resolve({
+              ...coordinates,
+              locationName
+            });
+          })
+          .catch(() => {
+            // If getting location name fails, resolve with just coordinates
+            resolve(coordinates);
+          });
       },
       (error) => {
         reject(error);
       }
     );
   });
+};
+
+/**
+ * Gets location name from coordinates using Google Maps Geocoding API
+ * @param lat Latitude
+ * @param lng Longitude
+ * @returns Promise that resolves to location name
+ */
+export const getLocationName = async (lat: number, lng: number) => {
+  try {
+    const response = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&result_type=locality&key=YOUR_API_KEY`
+    );
+    
+    const data = await response.json();
+    
+    if (data.results && data.results.length > 0) {
+      // Find locality (town/city) in address components
+      const locality = data.results[0].address_components.find(
+        (component: any) => component.types.includes("locality")
+      );
+      
+      // Fallback to formatted address if locality is not found
+      return locality ? locality.long_name : data.results[0].formatted_address;
+    }
+    
+    return "Unknown location";
+  } catch (error) {
+    console.error("Error getting location name:", error);
+    return "Unknown location";
+  }
 };
