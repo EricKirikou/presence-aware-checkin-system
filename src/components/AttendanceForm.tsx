@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import BiometricScanner from './BiometricScanner';
-import { MapPin } from 'lucide-react';
+import { MapPin, AlertTriangle } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface AttendanceFormProps {
   onSubmit: (data: {
@@ -174,6 +174,16 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
           )}
 
           <Separator />
+
+          {locationDenied && (
+            <Alert variant="destructive" className="mb-2">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Location access required</AlertTitle>
+              <AlertDescription>
+                Please enable location access in your browser settings to check in
+              </AlertDescription>
+            </Alert>
+          )}
 
           {locationDenied && (
             <div className="bg-red-50 p-3 rounded-md text-center">

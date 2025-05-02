@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
-import { Fingerprint } from 'lucide-react';
+import { Fingerprint, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface BiometricScannerProps {
   onSuccess: (location: { lat: number, lng: number }) => void;
@@ -108,6 +109,15 @@ const BiometricScanner: React.FC<BiometricScannerProps> = ({ onSuccess }) => {
 
   return (
     <div className="flex flex-col items-center space-y-4">
+      {locationDenied && (
+        <Alert variant="destructive" className="mb-2">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Location access required</AlertTitle>
+          <AlertDescription>
+            Please enable location access in your browser settings
+          </AlertDescription>
+        </Alert>
+      )}
       <div 
         className={cn(
           "fingerprint-scanner cursor-pointer",
