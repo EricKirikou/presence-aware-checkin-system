@@ -1,6 +1,7 @@
 
 import React from 'react';
-import AttendanceCard, { AttendanceRecord } from './AttendanceCard';
+import AttendanceCard from './AttendanceCard';
+import { AttendanceRecord } from '@/types/attendance';
 
 interface AttendanceListProps {
   records: AttendanceRecord[];
