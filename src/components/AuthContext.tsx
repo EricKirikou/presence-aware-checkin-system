@@ -75,22 +75,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Mock user data
-        const mockUser: User = {
-          id: '1',
-          name: email.split('@')[0],
-          email: email,
-          profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + email,
-          role: email.includes('admin') ? 'admin' : 'employee',
-          isFirstLogin: password === 'password123', // Consider first login if using default password
-        };
+        // Admin specific login
+        if (email === 'info@joseiksolutions.com' && password === 'Joseik@123456') {
+          const adminUser: User = {
+            id: 'admin-1',
+            name: 'Admin',
+            email: email,
+            profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
+            role: 'admin',
+            position: 'Administrator',
+            isFirstLogin: false,
+          };
+          setUser(adminUser);
+          toast({
+            title: "Admin Login successful",
+            description: `Welcome back, Administrator!`,
+          });
+          return true;
+        }
         
-        setUser(mockUser);
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${mockUser.name}!`,
-        });
-        return true;
+        // Regular user login
+        if (email && password) {
+          const mockUser: User = {
+            id: '1',
+            name: email.split('@')[0],
+            email: email,
+            profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + email,
+            role: 'employee',
+            isFirstLogin: password === 'password123', // Consider first login if using default password
+          };
+          
+          setUser(mockUser);
+          toast({
+            title: "Login successful",
+            description: `Welcome back, ${mockUser.name}!`,
+          });
+          return true;
+        }
       }
       return false;
     } catch (error) {

@@ -6,7 +6,7 @@ import AttendanceList from './AttendanceList';
 import CheckoutAttendance from './CheckoutAttendance';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserCheck, CalendarCheck, LogOut } from "lucide-react";
+import { UserCheck, CalendarCheck, LogOut, Users } from "lucide-react";
 import UserProfile from './UserProfile';
 import { AttendanceRecord } from './AttendanceCard';
 import ProfileSettings from './ProfileSettings';
@@ -26,7 +26,8 @@ const Dashboard: React.FC = () => {
           status: 'present',
           method: 'biometric',
           timestamp: new Date(new Date().setDate(new Date().getDate() - 1)),
-          location: { lat: 40.7128, lng: -74.0060 }
+          location: { lat: 40.7128, lng: -74.0060 },
+          isCheckout: false
         }
       ];
       setAttendanceRecords(sampleData);
@@ -47,7 +48,8 @@ const Dashboard: React.FC = () => {
       id: Date.now().toString(),
       userId: user.id,
       userName: user.name,
-      ...data
+      ...data,
+      isCheckout: data.isCheckout || false
     };
     
     setAttendanceRecords([newRecord, ...attendanceRecords]);
@@ -124,7 +126,7 @@ const Dashboard: React.FC = () => {
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="check-in">Check In</TabsTrigger>
           <TabsTrigger value="check-out">Check Out</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
+          {user?.role === 'admin' && <TabsTrigger value="history">History</TabsTrigger>}
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
@@ -134,9 +136,18 @@ const Dashboard: React.FC = () => {
         <TabsContent value="check-out" className="mt-6">
           <CheckoutAttendance onSubmit={handleAttendanceSubmit} />
         </TabsContent>
-        <TabsContent value="history" className="mt-6">
-          <AttendanceList records={attendanceRecords} />
-        </TabsContent>
+        {user?.role === 'admin' && (
+          <TabsContent value="history" className="mt-6">
+            <div className="mb-4">
+              <div className="flex items-center gap-2 text-primary">
+                <Users className="h-5 w-5" />
+                <h2 className="text-xl font-semibold">Admin Access: Attendance History</h2>
+              </div>
+              <p className="text-muted-foreground">As an administrator, you have access to all attendance records</p>
+            </div>
+            <AttendanceList records={attendanceRecords} />
+          </TabsContent>
+        )}
         <TabsContent value="profile" className="mt-6">
           <UserProfile />
         </TabsContent>
