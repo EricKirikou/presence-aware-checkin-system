@@ -58,7 +58,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
 
-    // In a real app, this would update the password in the database
+    // In a production environment, this would update the password in the database
     setUser(prev => prev ? { ...prev, isFirstLogin: false } : null);
     setShowPasswordReset(false);
     toast({
@@ -67,34 +67,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   };
 
-  // Simulate login - in a real app, this would connect to a backend
+  // In a production environment, this would connect to a secure backend
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // Mock login logic
       if (email && password) {
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Admin specific login
-        if (email === 'info@joseiksolutions.com' && password === 'Joseik@123456') {
+        // Admin authentication
+        if (email === 'admin@checkinpro.com' && password === 'Admin@123456') {
           const adminUser: User = {
             id: 'admin-1',
-            name: 'Admin',
+            name: 'Administrator',
             email: email,
             profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
             role: 'admin',
-            position: 'Administrator',
+            position: 'System Administrator',
             isFirstLogin: false,
           };
           setUser(adminUser);
           toast({
-            title: "Admin Login successful",
+            title: "Admin login successful",
             description: `Welcome back, Administrator!`,
           });
           return true;
         }
         
-        // Regular user login
+        // Regular user authentication
         if (email && password) {
           const mockUser: User = {
             id: '1',
@@ -102,7 +101,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             email: email,
             profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + email,
             role: 'employee',
-            isFirstLogin: password === 'password123', // Consider first login if using default password
+            isFirstLogin: false,
           };
           
           setUser(mockUser);
@@ -125,25 +124,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // Simulate signup - in a real app, this would connect to a backend
+  // In a production environment, this would connect to a secure backend
   const signup = async (email: string, password: string, name: string): Promise<boolean> => {
     try {
-      // Mock signup logic
       if (email && password && name) {
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Mock user data for new signup
-        const mockUser: User = {
+        // Create user account
+        const newUser: User = {
           id: Math.random().toString(36).substr(2, 9),
           name: name,
           email: email,
           profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + email,
           role: 'employee',
-          isFirstLogin: true, // Always true for new signups
+          isFirstLogin: false,
         };
         
-        setUser(mockUser);
+        setUser(newUser);
         toast({
           title: "Account created",
           description: "Your account has been created successfully!",

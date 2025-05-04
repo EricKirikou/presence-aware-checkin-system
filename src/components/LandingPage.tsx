@@ -25,8 +25,7 @@ const LandingPage: React.FC = () => {
                 Modern Attendance Tracking with Biometric Verification
               </h1>
               <p className="text-lg md:text-xl opacity-90">
-                Streamline your organization's attendance process with our secure, 
-                reliable, and easy-to-use platform.
+                Experience a secure, reliable, and easy-to-use platform for your organization's attendance management.
               </p>
               <div className="flex flex-wrap gap-4 pt-4">
                 <Button 
@@ -34,7 +33,7 @@ const LandingPage: React.FC = () => {
                   onClick={() => navigate('/login')} 
                   className="bg-white text-primary hover:bg-white/90"
                 >
-                  Get Started
+                  Sign In
                 </Button>
                 <Button 
                   size="lg" 
@@ -119,14 +118,14 @@ const LandingPage: React.FC = () => {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold mb-6">Ready to Transform Your Attendance System?</h2>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Join thousands of organizations that trust CheckInPro for reliable, secure attendance tracking.
+            Join organizations worldwide that trust CheckInPro for reliable, secure attendance tracking.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button size="lg" onClick={() => navigate('/login')}>
               Get Started Now
             </Button>
-            <Button size="lg" variant="outline" onClick={() => navigate('/login')}>
-              Request Demo
+            <Button size="lg" variant="outline" onClick={() => window.location.href = "mailto:contact@checkinpro.com"}>
+              Contact Sales
             </Button>
           </div>
         </div>
@@ -138,23 +137,23 @@ const LandingPage: React.FC = () => {
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-6 md:mb-0">
               <h2 className="text-2xl font-bold">CheckInPro</h2>
-              <p className="text-gray-400 mt-2">Modern attendance tracking solution</p>
+              <p className="text-gray-400 mt-2">Enterprise attendance tracking solution</p>
             </div>
             <div className="flex flex-col md:flex-row gap-8">
               <div>
                 <h3 className="text-lg font-semibold mb-3">Product</h3>
                 <ul className="space-y-2">
                   <li><a href="#features" className="text-gray-400 hover:text-white transition-colors">Features</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Pricing</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white transition-colors">FAQ</a></li>
+                  <li><a href="mailto:contact@checkinpro.com" className="text-gray-400 hover:text-white transition-colors">Pricing</a></li>
+                  <li><a href="mailto:support@checkinpro.com" className="text-gray-400 hover:text-white transition-colors">Support</a></li>
                 </ul>
               </div>
               <div>
                 <h3 className="text-lg font-semibold mb-3">Company</h3>
                 <ul className="space-y-2">
-                  <li><a href="#" className="text-gray-400 hover:text-white transition-colors">About</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Blog</a></li>
-                  <li><a href="#" className="text-gray-400 hover:text-white transition-colors">Contact</a></li>
+                  <li><a href="mailto:info@checkinpro.com" className="text-gray-400 hover:text-white transition-colors">About</a></li>
+                  <li><a href="mailto:careers@checkinpro.com" className="text-gray-400 hover:text-white transition-colors">Careers</a></li>
+                  <li><a href="mailto:contact@checkinpro.com" className="text-gray-400 hover:text-white transition-colors">Contact</a></li>
                 </ul>
               </div>
             </div>

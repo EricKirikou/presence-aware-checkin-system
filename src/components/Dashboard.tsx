@@ -16,22 +16,8 @@ const Dashboard: React.FC = () => {
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
 
   useEffect(() => {
-    // Load sample attendance data on component mount
-    if (user) {
-      const sampleData: AttendanceRecord[] = [
-        {
-          id: '1',
-          userId: user.id,
-          userName: user.name,
-          status: 'present',
-          method: 'biometric',
-          timestamp: new Date(new Date().setDate(new Date().getDate() - 1)),
-          location: { lat: 40.7128, lng: -74.0060 },
-          isCheckout: false
-        }
-      ];
-      setAttendanceRecords(sampleData);
-    }
+    // In a production environment, this would fetch real attendance data from an API
+    // Currently using empty array as default state for a clean start
   }, [user]);
 
   const handleAttendanceSubmit = (data: {
@@ -141,9 +127,9 @@ const Dashboard: React.FC = () => {
             <div className="mb-4">
               <div className="flex items-center gap-2 text-primary">
                 <Users className="h-5 w-5" />
-                <h2 className="text-xl font-semibold">Admin Access: Attendance History</h2>
+                <h2 className="text-xl font-semibold">Attendance History</h2>
               </div>
-              <p className="text-muted-foreground">As an administrator, you have access to all attendance records</p>
+              <p className="text-muted-foreground">View and manage all attendance records</p>
             </div>
             <AttendanceList records={attendanceRecords} />
           </TabsContent>

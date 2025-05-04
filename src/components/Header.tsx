@@ -61,7 +61,7 @@ const Header: React.FC = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button onClick={() => navigate('/login')}>Login</Button>
+              <Button onClick={() => navigate('/login')}>Sign In</Button>
             )}
           </div>
         </div>
