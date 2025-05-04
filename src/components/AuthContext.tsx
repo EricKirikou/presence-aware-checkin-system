@@ -1,6 +1,9 @@
 
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export interface User {
   id: string;
@@ -8,6 +11,8 @@ export interface User {
   email: string;
   profileImage: string;
   role: 'employee' | 'admin';
+  position?: string;
+  isFirstLogin?: boolean;
 }
 
 interface AuthContextType {
@@ -15,13 +20,51 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  updateProfile: (updatedUser: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (user?.isFirstLogin) {
+      setShowPasswordReset(true);
+    }
+  }, [user]);
+
+  const handlePasswordReset = () => {
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "New password and confirmation must match",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (newPassword.length < 8) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 8 characters",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // In a real app, this would update the password in the database
+    setUser(prev => prev ? { ...prev, isFirstLogin: false } : null);
+    setShowPasswordReset(false);
+    toast({
+      title: "Password created",
+      description: "Your new password has been set successfully",
+    });
+  };
 
   // Simulate login - in a real app, this would connect to a backend
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -38,6 +81,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           email: email,
           profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + email,
           role: email.includes('admin') ? 'admin' : 'employee',
+          isFirstLogin: password === 'password123', // Consider first login if using default password
         };
         
         setUser(mockUser);
@@ -59,6 +103,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  const updateProfile = (updatedUser: User) => {
+    setUser(updatedUser);
+  };
+
   const logout = () => {
     setUser(null);
     toast({
@@ -68,8 +116,44 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, updateProfile }}>
       {children}
+      
+      <Dialog open={showPasswordReset} onOpenChange={setShowPasswordReset}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Create New Password</DialogTitle>
+            <DialogDescription>
+              Since this is your first login, please create a new password for your account.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <label htmlFor="new-password">New Password</label>
+              <Input
+                id="new-password"
+                type="password" 
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="confirm-password">Confirm Password</label>
+              <Input
+                id="confirm-password"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handlePasswordReset}>Create Password</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AuthContext.Provider>
   );
 };

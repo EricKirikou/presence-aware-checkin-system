@@ -8,50 +8,51 @@ import { useToast } from "@/hooks/use-toast";
 import FaceScanner from './FaceScanner';
 import LocationDeniedAlert from './LocationDeniedAlert';
 import ManualAttendance from './ManualAttendance';
-import { checkLocationPermission, getCurrentLocation } from '@/utils/locationUtils';
+import { checkLocationPermission } from '@/utils/locationUtils';
 
-interface AttendanceFormProps {
+interface CheckoutAttendanceProps {
   onSubmit: (data: {
     status: 'present' | 'absent' | 'late';
     method: 'biometric' | 'manual';
     location: { lat: number; lng: number; locationName?: string } | null;
     timestamp: Date;
-    isCheckout?: boolean;
+    isCheckout: boolean;
     faceImage?: string;
   }) => void;
 }
 
-const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
+const CheckoutAttendance: React.FC<CheckoutAttendanceProps> = ({ onSubmit }) => {
   const [status, setStatus] = useState<'present' | 'absent' | 'late'>('present');
   const [method, setMethod] = useState<'biometric' | 'manual'>('biometric');
   const [location, setLocation] = useState<{ lat: number; lng: number; locationName?: string } | null>(null);
   const [locationDenied, setLocationDenied] = useState(false);
   const { toast } = useToast();
 
-  const handleFaceScanSuccess = (faceScanLocation: { lat: number, lng: number, locationName?: string }, faceImage?: string) => {
-    setLocation(faceScanLocation);
-    submitAttendance(faceScanLocation, faceImage);
+  const handleFaceScanSuccess = (scanLocation: { lat: number, lng: number, locationName?: string }, faceImage?: string) => {
+    setLocation(scanLocation);
+    submitCheckout(scanLocation, faceImage);
   };
 
   const handleManualSubmit = (submitLocation: { lat: number, lng: number, locationName?: string }) => {
     setLocation(submitLocation);
-    submitAttendance(submitLocation);
+    submitCheckout(submitLocation);
   };
 
-  const submitAttendance = (submitLocation: { lat: number, lng: number, locationName?: string }, faceImage?: string) => {
+  const submitCheckout = (submitLocation: { lat: number, lng: number, locationName?: string }, faceImage?: string) => {
     onSubmit({
       status,
       method,
       location: submitLocation,
       timestamp: new Date(),
+      isCheckout: true,
       faceImage
     });
 
     toast({
-      title: "Check-in successful",
+      title: "Checkout successful",
       description: submitLocation.locationName ? 
-        `You've been marked as ${status} at ${submitLocation.locationName}` :
-        `You've been marked as ${status} at ${new Date().toLocaleTimeString()}`,
+        `You've checked out from ${submitLocation.locationName}` :
+        `You've checked out at ${new Date().toLocaleTimeString()}`,
     });
   };
 
@@ -63,13 +64,13 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle>Daily Check-In</CardTitle>
-        <CardDescription>Mark your attendance for today</CardDescription>
+        <CardTitle>Daily Checkout</CardTitle>
+        <CardDescription>Record your departure for today</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
           <div className="space-y-2">
-            <h3 className="text-sm font-medium">Check-in method</h3>
+            <h3 className="text-sm font-medium">Checkout method</h3>
             <RadioGroup 
               defaultValue="biometric" 
               value={method}
@@ -77,12 +78,12 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
               className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-4"
             >
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="biometric" id="biometric" />
-                <Label htmlFor="biometric">Facial Recognition</Label>
+                <RadioGroupItem value="biometric" id="checkout-biometric" />
+                <Label htmlFor="checkout-biometric">Facial Recognition</Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="manual" id="manual" />
-                <Label htmlFor="manual">Manual</Label>
+                <RadioGroupItem value="manual" id="checkout-manual" />
+                <Label htmlFor="checkout-manual">Manual</Label>
               </div>
             </RadioGroup>
           </div>
@@ -92,7 +93,8 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
               status={status} 
               setStatus={setStatus} 
               locationDenied={locationDenied} 
-              onSubmitManual={handleManualSubmit} 
+              onSubmitManual={handleManualSubmit}
+              isCheckout={true}
             />
           )}
 
@@ -101,7 +103,7 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
           <LocationDeniedAlert locationDenied={locationDenied} />
 
           {method === 'biometric' ? (
-            <FaceScanner onSuccess={handleFaceScanSuccess} />
+            <FaceScanner onSuccess={handleFaceScanSuccess} isCheckout={true} />
           ) : null}
         </div>
       </CardContent>
@@ -109,11 +111,11 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
         {location ? (
           <p>Location captured: {location.locationName || `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`}</p>
         ) : (
-          <p>Your location will be recorded when you check in</p>
+          <p>Your location will be recorded when you check out</p>
         )}
       </CardFooter>
     </Card>
   );
 };
 
-export default AttendanceForm;
+export default CheckoutAttendance;

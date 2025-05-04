@@ -3,11 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import AttendanceForm from './AttendanceForm';
 import AttendanceList from './AttendanceList';
+import CheckoutAttendance from './CheckoutAttendance';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserCheck, CalendarCheck } from "lucide-react";
+import { UserCheck, CalendarCheck, LogOut } from "lucide-react";
 import UserProfile from './UserProfile';
 import { AttendanceRecord } from './AttendanceCard';
+import ProfileSettings from './ProfileSettings';
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -34,8 +36,10 @@ const Dashboard: React.FC = () => {
   const handleAttendanceSubmit = (data: {
     status: 'present' | 'absent' | 'late';
     method: 'biometric' | 'manual';
-    location: { lat: number; lng: number } | null;
+    location: { lat: number; lng: number; locationName?: string } | null;
     timestamp: Date;
+    isCheckout?: boolean;
+    faceImage?: string;
   }) => {
     if (!user) return;
     
@@ -64,7 +68,7 @@ const Dashboard: React.FC = () => {
           <CardContent>
             <div className="text-2xl font-bold">
               {attendanceRecords.some(r => 
-                r.timestamp.toDateString() === new Date().toDateString()
+                r.timestamp.toDateString() === new Date().toDateString() && !r.isCheckout
               ) ? 'Checked In' : 'Not Checked In'}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -89,7 +93,7 @@ const Dashboard: React.FC = () => {
             <div className="flex justify-around text-center">
               <div>
                 <div className="text-2xl font-bold">
-                  {attendanceRecords.filter(r => r.status === 'present').length}
+                  {attendanceRecords.filter(r => r.status === 'present' && !r.isCheckout).length}
                 </div>
                 <p className="text-xs text-muted-foreground">Present</p>
               </div>
@@ -105,25 +109,39 @@ const Dashboard: React.FC = () => {
                 </div>
                 <p className="text-xs text-muted-foreground">Late</p>
               </div>
+              <div>
+                <div className="text-2xl font-bold">
+                  {attendanceRecords.filter(r => r.isCheckout).length}
+                </div>
+                <p className="text-xs text-muted-foreground">Checkouts</p>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
       
       <Tabs defaultValue="check-in" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="check-in">Check In</TabsTrigger>
+          <TabsTrigger value="check-out">Check Out</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
         <TabsContent value="check-in" className="mt-6">
           <AttendanceForm onSubmit={handleAttendanceSubmit} />
+        </TabsContent>
+        <TabsContent value="check-out" className="mt-6">
+          <CheckoutAttendance onSubmit={handleAttendanceSubmit} />
         </TabsContent>
         <TabsContent value="history" className="mt-6">
           <AttendanceList records={attendanceRecords} />
         </TabsContent>
         <TabsContent value="profile" className="mt-6">
           <UserProfile />
+        </TabsContent>
+        <TabsContent value="settings" className="mt-6">
+          <ProfileSettings />
         </TabsContent>
       </Tabs>
     </div>

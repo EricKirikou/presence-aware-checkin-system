@@ -29,6 +29,9 @@ const UserProfile: React.FC = () => {
             <div>
               <h3 className="font-semibold text-xl">{user.name}</h3>
               <p className="text-sm text-muted-foreground">{user.email}</p>
+              {user.position && (
+                <p className="text-sm font-medium text-primary">{user.position}</p>
+              )}
             </div>
             <Badge variant={user.role === 'admin' ? "destructive" : "outline"}>
               {user.role === 'admin' ? 'Administrator' : 'Employee'}
@@ -49,6 +52,16 @@ const UserProfile: React.FC = () => {
               <p className="text-muted-foreground">Role</p>
               <p className="capitalize">{user.role}</p>
             </div>
+            <div className="text-sm">
+              <p className="text-muted-foreground">Username</p>
+              <p>{user.email.split('@')[0]}</p>
+            </div>
+            {user.position && (
+              <div className="text-sm">
+                <p className="text-muted-foreground">Position</p>
+                <p>{user.position}</p>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>

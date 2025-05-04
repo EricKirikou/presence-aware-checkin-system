@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -10,14 +10,16 @@ interface ManualAttendanceProps {
   status: 'present' | 'absent' | 'late';
   setStatus: React.Dispatch<React.SetStateAction<'present' | 'absent' | 'late'>>;
   locationDenied: boolean;
-  onSubmitManual: (location: { lat: number; lng: number; locationName?: string }) => void;
+  onSubmitManual: (location: { lat: number; lng: number; locationName?: string }, isCheckout?: boolean) => void;
+  isCheckout?: boolean;
 }
 
 const ManualAttendance: React.FC<ManualAttendanceProps> = ({ 
   status, 
   setStatus, 
   locationDenied, 
-  onSubmitManual 
+  onSubmitManual,
+  isCheckout = false
 }) => {
   const { toast } = useToast();
   
@@ -32,7 +34,7 @@ const ManualAttendance: React.FC<ManualAttendanceProps> = ({
       
       // Now get the location with locationName
       const currentLocation = await getCurrentLocation();
-      onSubmitManual(currentLocation);
+      onSubmitManual(currentLocation, isCheckout);
     } catch (error) {
       console.error("Geolocation error:", error);
       toast({
@@ -70,7 +72,7 @@ const ManualAttendance: React.FC<ManualAttendanceProps> = ({
 
       <div className="flex justify-center">
         <Button onClick={handleManualSubmit} disabled={locationDenied}>
-          Submit Attendance
+          {isCheckout ? 'Submit Checkout' : 'Submit Attendance'}
         </Button>
       </div>
     </div>
