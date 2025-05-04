@@ -11,11 +11,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const Header: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Don't show header on the landing page
+  if (location.pathname === '/' && !isAuthenticated) {
+    return null;
+  }
 
   return (
     <header className="bg-white shadow-sm">
@@ -23,7 +29,7 @@ const Header: React.FC = () => {
         <div className="flex justify-between h-16 items-center">
           <div className="flex items-center">
             <div className="flex-shrink-0">
-              <h1 className="text-xl font-bold text-primary">CheckInPro</h1>
+              <h1 className="text-xl font-bold text-primary cursor-pointer" onClick={() => navigate('/')}>CheckInPro</h1>
             </div>
           </div>
           <div className="flex items-center">
