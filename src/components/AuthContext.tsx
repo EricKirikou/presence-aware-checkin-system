@@ -19,6 +19,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
+  signup: (email: string, password: string, name: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (updatedUser: User) => void;
 }
@@ -103,6 +104,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
+  // Simulate signup - in a real app, this would connect to a backend
+  const signup = async (email: string, password: string, name: string): Promise<boolean> => {
+    try {
+      // Mock signup logic
+      if (email && password && name) {
+        // Simulate API call delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Mock user data for new signup
+        const mockUser: User = {
+          id: Math.random().toString(36).substr(2, 9),
+          name: name,
+          email: email,
+          profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + email,
+          role: 'employee',
+          isFirstLogin: true, // Always true for new signups
+        };
+        
+        setUser(mockUser);
+        toast({
+          title: "Account created",
+          description: "Your account has been created successfully!",
+        });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Signup error:', error);
+      toast({
+        title: "Signup failed",
+        description: "Failed to create account. Please try again.",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const updateProfile = (updatedUser: User) => {
     setUser(updatedUser);
   };
@@ -116,7 +154,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, logout, signup, updateProfile }}>
       {children}
       
       <Dialog open={showPasswordReset} onOpenChange={setShowPasswordReset}>
