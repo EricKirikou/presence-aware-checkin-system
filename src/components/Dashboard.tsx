@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserCheck, CalendarCheck, LogOut, Users } from "lucide-react";
 import UserProfile from './UserProfile';
-import { AttendanceRecord } from './AttendanceCard';
+import { AttendanceRecord } from '@/types/attendance';
 import ProfileSettings from './ProfileSettings';
 
 const Dashboard: React.FC = () => {

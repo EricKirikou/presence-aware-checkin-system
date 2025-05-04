@@ -7,6 +7,6 @@ export interface AttendanceRecord {
   method: 'biometric' | 'manual';
   timestamp: Date;
   location: { lat: number; lng: number; locationName?: string } | null;
-  isCheckout?: boolean;
+  isCheckout: boolean;
   faceImage?: string;
 }

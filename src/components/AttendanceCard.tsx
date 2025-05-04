@@ -2,22 +2,9 @@
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Clock, XCircle, MapPin } from "lucide-react";
+import { CheckCircle, Clock, XCircle, MapPin, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-export interface AttendanceRecord {
-  id: string;
-  userId: string;
-  userName: string;
-  status: 'present' | 'absent' | 'late';
-  method: 'biometric' | 'manual';
-  timestamp: Date;
-  location: {
-    lat: number;
-    lng: number;
-    locationName?: string;
-  } | null;
-}
+import { AttendanceRecord } from '@/types/attendance';
 
 interface AttendanceCardProps {
   record: AttendanceRecord;
@@ -51,9 +38,17 @@ const AttendanceCard: React.FC<AttendanceCardProps> = ({ record }) => {
           <StatusIcon className={`h-5 w-5 ${record.status === 'present' ? 'text-green-600' : record.status === 'absent' ? 'text-red-600' : 'text-amber-600'}`} />
           <span className="font-semibold">{record.userName}</span>
         </div>
-        <Badge className={cn(statusConfig[record.status].color)}>
-          {statusConfig[record.status].label}
-        </Badge>
+        <div className="flex items-center space-x-2">
+          <Badge className={cn(statusConfig[record.status].color)}>
+            {statusConfig[record.status].label}
+          </Badge>
+          {record.isCheckout && (
+            <Badge variant="outline" className="flex items-center">
+              <LogOut className="h-3 w-3 mr-1" />
+              Checkout
+            </Badge>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="py-2">
         <div className="flex flex-col space-y-1">
@@ -64,7 +59,7 @@ const AttendanceCard: React.FC<AttendanceCardProps> = ({ record }) => {
             </span>
           </div>
           <div className="text-xs text-muted-foreground">
-            Check-in method: {record.method === 'biometric' ? 'Biometric scan' : 'Manual entry'}
+            Check-{record.isCheckout ? 'out' : 'in'} method: {record.method === 'biometric' ? 'Biometric scan' : 'Manual entry'}
           </div>
         </div>
       </CardContent>
