@@ -7,11 +7,15 @@ import CheckoutAttendance from './CheckoutAttendance';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserCheck, CalendarCheck, LogOut, Users } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import UserProfile from './UserProfile';
 import { AttendanceRecord } from '@/types/attendance';
 import ProfileSettings from './ProfileSettings';
 import { saveAttendanceRecord, getAttendanceRecords } from '@/services/supabase';
 import { useToast } from "@/hooks/use-toast";
+
+// Check if Supabase is configured
+const isSupabaseConfigured = import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -87,6 +91,16 @@ const Dashboard: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
       <h1 className="text-2xl font-bold">Welcome, {user?.name}</h1>
+      
+      {!isSupabaseConfigured && (
+        <Alert className="bg-yellow-50 border-yellow-200">
+          <AlertTitle className="text-yellow-800">Running in Demo Mode</AlertTitle>
+          <AlertDescription>
+            Supabase is not configured. Attendance data will not be permanently stored. 
+            Please set up Supabase environment variables to enable database functionality.
+          </AlertDescription>
+        </Alert>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="md:col-span-1 bg-primary/5">
