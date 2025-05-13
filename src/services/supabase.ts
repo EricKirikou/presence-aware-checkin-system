@@ -21,6 +21,31 @@ function createMockClient() {
   // In-memory storage for development
   const mockStorage: AttendanceRecord[] = [];
   
+  // Create a mock query object that matches the structure expected by the app
+  const createMockQuery = () => {
+    const mockQueryObject = {
+      data: mockStorage,
+      error: null,
+      
+      // Add all the required filter methods
+      eq: () => mockQueryObject,
+      neq: () => mockQueryObject,
+      gt: () => mockQueryObject,
+      lt: () => mockQueryObject,
+      gte: () => mockQueryObject,
+      lte: () => mockQueryObject,
+      like: () => mockQueryObject,
+      ilike: () => mockQueryObject,
+      is: () => mockQueryObject,
+      in: () => mockQueryObject,
+      
+      // Order function that matches the expected signature
+      order: () => ({ data: mockStorage, error: null })
+    };
+    
+    return mockQueryObject;
+  };
+  
   return {
     from: () => ({
       insert: (record: any) => {
@@ -32,12 +57,7 @@ function createMockClient() {
           select: () => ({ single: () => ({ data: newRecord, error: null }) })
         };
       },
-      select: () => ({
-        eq: () => ({
-          order: () => ({ data: mockStorage, error: null })
-        }),
-        order: () => ({ data: mockStorage, error: null })
-      })
+      select: () => createMockQuery(),
     })
   };
 }
