@@ -2,8 +2,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { AttendanceRecord } from '@/types/attendance';
 
-// Initialize Supabase client with the provided URL or fallback to environment variable
-const supabaseUrl = 'https://qggdrunhlhuidxwwkhtz.supabase.co' || import.meta.env.VITE_SUPABASE_URL;
+// Initialize Supabase client with the provided URL
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://qggdrunhlhuidxwwkhtz.supabase.co';
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
 
 // Check if we have the required credentials
