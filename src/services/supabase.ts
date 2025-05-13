@@ -2,65 +2,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { AttendanceRecord } from '@/types/attendance';
 
-// Initialize Supabase client with the provided URL
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://qggdrunhlhuidxwwkhtz.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
+// Initialize Supabase client with the provided URL and key
+const supabaseUrl = 'https://qggdrunhlhuidxwwkhtz.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZ2RydW5obGh1aWR4d3draHR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcwOTY3NzYsImV4cCI6MjA2MjY3Mjc3Nn0.YVKQ4gY2bmzG9IBjFZM9hQiFG8zEnhpMeDU5HByFT6A';
 
-// Check if we have the required credentials
-const isMissingCredentials = !supabaseAnonKey || supabaseAnonKey === 'your-anon-key';
-
-// Create a client or a mock client based on available credentials
-export const supabase = isMissingCredentials 
-  ? createMockClient() 
-  : createClient(supabaseUrl, supabaseAnonKey);
-
-// Mock client for development when Supabase is not configured
-function createMockClient() {
-  console.warn('Supabase credentials not found. Using mock client for development.');
-  
-  // In-memory storage for development
-  const mockStorage: AttendanceRecord[] = [];
-  
-  // Create a mock query object that matches the structure expected by the app
-  const createMockQuery = () => {
-    const mockQueryObject = {
-      data: mockStorage,
-      error: null,
-      
-      // Add all the required filter methods
-      eq: () => mockQueryObject,
-      neq: () => mockQueryObject,
-      gt: () => mockQueryObject,
-      lt: () => mockQueryObject,
-      gte: () => mockQueryObject,
-      lte: () => mockQueryObject,
-      like: () => mockQueryObject,
-      ilike: () => mockQueryObject,
-      is: () => mockQueryObject,
-      in: () => mockQueryObject,
-      
-      // Order function that matches the expected signature
-      order: () => ({ data: mockStorage, error: null })
-    };
-    
-    return mockQueryObject;
-  };
-  
-  return {
-    from: () => ({
-      insert: (record: any) => {
-        const newRecord = { ...record, id: Date.now().toString() };
-        mockStorage.push(newRecord);
-        return { 
-          data: newRecord, 
-          error: null,
-          select: () => ({ single: () => ({ data: newRecord, error: null }) })
-        };
-      },
-      select: () => createMockQuery(),
-    })
-  };
-}
+// Create the Supabase client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Attendance functions
 export const saveAttendanceRecord = async (record: AttendanceRecord) => {
@@ -82,7 +29,7 @@ export const saveAttendanceRecord = async (record: AttendanceRecord) => {
     return data;
   } catch (error) {
     console.error('Error saving attendance record:', error);
-    // Return the original record for development without Supabase
+    // Return the original record in case of error
     return record;
   }
 };
@@ -110,7 +57,7 @@ export const getAttendanceRecords = async (userId?: string) => {
     })) as AttendanceRecord[];
   } catch (error) {
     console.error('Error getting attendance records:', error);
-    // Return empty array for development without Supabase
+    // Return empty array in case of error
     return [];
   }
 };
