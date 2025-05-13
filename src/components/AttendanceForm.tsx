@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,10 @@ import FaceScanner from './FaceScanner';
 import LocationDeniedAlert from './LocationDeniedAlert';
 import ManualAttendance from './ManualAttendance';
 import { checkLocationPermission, getCurrentLocation } from '@/utils/locationUtils';
+import { useAuth } from './AuthContext';
+import { hasCheckedInToday } from '@/services/supabase';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Clock } from "lucide-react";
 
 interface AttendanceFormProps {
   onSubmit: (data: {
@@ -26,39 +30,111 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
   const [method, setMethod] = useState<'biometric' | 'manual'>('biometric');
   const [location, setLocation] = useState<{ lat: number; lng: number; locationName?: string } | null>(null);
   const [locationDenied, setLocationDenied] = useState(false);
+  const [alreadyCheckedIn, setAlreadyCheckedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const handleFaceScanSuccess = (faceScanLocation: { lat: number, lng: number, locationName?: string }, faceImage?: string) => {
-    setLocation(faceScanLocation);
-    submitAttendance(faceScanLocation, faceImage);
+  useEffect(() => {
+    const checkTodayAttendance = async () => {
+      if (user) {
+        setIsLoading(true);
+        try {
+          const hasCheckedIn = await hasCheckedInToday(user.id);
+          setAlreadyCheckedIn(hasCheckedIn);
+        } catch (error) {
+          console.error("Error checking today's attendance:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    checkTodayAttendance();
+  }, [user]);
+
+  const handleFaceScanSuccess = async (faceScanLocation: { lat: number, lng: number, locationName?: string }, faceImage?: string) => {
+    try {
+      setLocation(faceScanLocation);
+      await submitAttendance(faceScanLocation, faceImage);
+    } catch (error) {
+      // Error is handled in submitAttendance
+    }
   };
 
-  const handleManualSubmit = (submitLocation: { lat: number, lng: number, locationName?: string }) => {
-    setLocation(submitLocation);
-    submitAttendance(submitLocation);
+  const handleManualSubmit = async (submitLocation: { lat: number, lng: number, locationName?: string }) => {
+    try {
+      setLocation(submitLocation);
+      await submitAttendance(submitLocation);
+    } catch (error) {
+      // Error is handled in submitAttendance
+    }
   };
 
-  const submitAttendance = (submitLocation: { lat: number, lng: number, locationName?: string }, faceImage?: string) => {
-    onSubmit({
-      status,
-      method,
-      location: submitLocation,
-      timestamp: new Date(),
-      faceImage
-    });
+  const submitAttendance = async (submitLocation: { lat: number, lng: number, locationName?: string }, faceImage?: string) => {
+    try {
+      await onSubmit({
+        status,
+        method,
+        location: submitLocation,
+        timestamp: new Date(),
+        faceImage
+      });
 
-    toast({
-      title: "Check-in successful",
-      description: submitLocation.locationName ? 
-        `You've been marked as ${status} at ${submitLocation.locationName}` :
-        `You've been marked as ${status} at ${new Date().toLocaleTimeString()}`,
-    });
+      toast({
+        title: "Check-in successful",
+        description: submitLocation.locationName ? 
+          `You've been marked as ${status} at ${submitLocation.locationName}` :
+          `You've been marked as ${status} at ${new Date().toLocaleTimeString()}`,
+      });
+      
+      // Update state after successful check-in
+      setAlreadyCheckedIn(true);
+    } catch (error: any) {
+      toast({
+        title: "Check-in failed",
+        description: error.message || "An error occurred while checking in",
+        variant: "destructive",
+      });
+    }
   };
 
   // Check location permission when component mounts or method changes
   React.useEffect(() => {
     checkLocationPermission(setLocationDenied, toast);
   }, [method]);
+
+  if (isLoading) {
+    return (
+      <Card className="w-full">
+        <CardContent className="py-10">
+          <div className="flex justify-center items-center">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+          </div>
+          <p className="text-center mt-4 text-muted-foreground">Checking attendance records...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (alreadyCheckedIn) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Already Checked In</CardTitle>
+          <CardDescription>You have already checked in for today</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert className="bg-green-50 border-green-200">
+            <Clock className="h-5 w-5 text-green-600" />
+            <AlertDescription className="text-green-700">
+              You're all set for today! You've already successfully checked in.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full">

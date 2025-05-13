@@ -62,29 +62,32 @@ const Dashboard: React.FC = () => {
       id: Date.now().toString(),
       userId: user.id,
       userName: user.name,
-      email: user.email,  // Store email with the record
+      email: user.email,
       ...data,
       isCheckout: data.isCheckout || false
     };
     
     try {
       // Save the record to the database
-      await saveAttendanceRecord(newRecord);
+      const savedRecord = await saveAttendanceRecord(newRecord);
       
       // Update local state with the new record
-      setAttendanceRecords([newRecord, ...attendanceRecords]);
+      setAttendanceRecords([savedRecord, ...attendanceRecords]);
       
       toast({
         title: data.isCheckout ? "Checkout recorded" : "Check-in recorded",
         description: `Your attendance has been saved successfully`,
       });
-    } catch (error) {
+
+      return savedRecord;
+    } catch (error: any) {
       console.error('Error saving attendance record:', error);
       toast({
         title: "Failed to save attendance",
-        description: "Please try again",
+        description: error.message || "Please try again",
         variant: "destructive",
       });
+      throw error; // Re-throw so the form can handle it
     }
   };
 

@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import { AttendanceRecord } from '@/types/attendance';
 
@@ -9,9 +8,46 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 // Create the Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Check if user has already checked in on the same day
+export const hasCheckedInToday = async (userId: string): Promise<boolean> => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
+    
+    const startOfDay = new Date(today);
+    const endOfDay = new Date(today);
+    endOfDay.setHours(23, 59, 59, 999); // End of today
+    
+    const { data, error } = await supabase
+      .from('attendance_records')
+      .select('*')
+      .eq('userId', userId)
+      .gte('timestamp', startOfDay.toISOString())
+      .lte('timestamp', endOfDay.toISOString())
+      .eq('isCheckout', false); // Only check for check-ins, not checkouts
+    
+    if (error) throw error;
+    
+    // If we have any records, the user has already checked in today
+    return data && data.length > 0;
+  } catch (error) {
+    console.error('Error checking for today\'s attendance:', error);
+    return false; // In case of error, allow check-in (safer default)
+  }
+};
+
 // Attendance functions
 export const saveAttendanceRecord = async (record: AttendanceRecord) => {
   try {
+    // Check if this is a check-in (not a checkout)
+    if (!record.isCheckout) {
+      // Check if the user has already checked in today
+      const alreadyCheckedIn = await hasCheckedInToday(record.userId);
+      if (alreadyCheckedIn) {
+        throw new Error('You have already checked in today.');
+      }
+    }
+    
     // Convert the timestamp to ISO string for proper storage
     const recordToSave = {
       ...record,
@@ -29,8 +65,8 @@ export const saveAttendanceRecord = async (record: AttendanceRecord) => {
     return data;
   } catch (error) {
     console.error('Error saving attendance record:', error);
-    // Return the original record in case of error
-    return record;
+    // Re-throw the error so it can be handled by the component
+    throw error;
   }
 };
 
