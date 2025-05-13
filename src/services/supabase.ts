@@ -2,12 +2,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { AttendanceRecord } from '@/types/attendance';
 
-// Initialize Supabase client with default values for development
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co';
+// Initialize Supabase client with the provided URL or fallback to environment variable
+const supabaseUrl = 'https://qggdrunhlhuidxwwkhtz.supabase.co' || import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key';
 
-// Create mock functions for development when Supabase is not configured
-const isMissingCredentials = !import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Check if we have the required credentials
+const isMissingCredentials = !supabaseAnonKey || supabaseAnonKey === 'your-anon-key';
 
 // Create a client or a mock client based on available credentials
 export const supabase = isMissingCredentials 
