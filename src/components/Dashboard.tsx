@@ -10,17 +10,41 @@ import { UserCheck, CalendarCheck, LogOut, Users } from "lucide-react";
 import UserProfile from './UserProfile';
 import { AttendanceRecord } from '@/types/attendance';
 import ProfileSettings from './ProfileSettings';
+import { saveAttendanceRecord, getAttendanceRecords } from '@/services/supabase';
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
+  // Fetch attendance records from the database
   useEffect(() => {
-    // In a production environment, this would fetch real attendance data from an API
-    // Currently using empty array as default state for a clean start
-  }, [user]);
+    const fetchAttendanceRecords = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      try {
+        // For admin, get all records, for regular user get only their records
+        const records = await getAttendanceRecords(user.role === 'admin' ? undefined : user.id);
+        setAttendanceRecords(records);
+      } catch (error) {
+        console.error('Error fetching attendance records:', error);
+        toast({
+          title: "Failed to load attendance data",
+          description: "Please try again later",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const handleAttendanceSubmit = (data: {
+    fetchAttendanceRecords();
+  }, [user, toast]);
+
+  const handleAttendanceSubmit = async (data: {
     status: 'present' | 'absent' | 'late';
     method: 'biometric' | 'manual';
     location: { lat: number; lng: number; locationName?: string } | null;
@@ -34,11 +58,30 @@ const Dashboard: React.FC = () => {
       id: Date.now().toString(),
       userId: user.id,
       userName: user.name,
+      email: user.email,  // Store email with the record
       ...data,
       isCheckout: data.isCheckout || false
     };
     
-    setAttendanceRecords([newRecord, ...attendanceRecords]);
+    try {
+      // Save the record to the database
+      await saveAttendanceRecord(newRecord);
+      
+      // Update local state with the new record
+      setAttendanceRecords([newRecord, ...attendanceRecords]);
+      
+      toast({
+        title: data.isCheckout ? "Checkout recorded" : "Check-in recorded",
+        description: `Your attendance has been saved successfully`,
+      });
+    } catch (error) {
+      console.error('Error saving attendance record:', error);
+      toast({
+        title: "Failed to save attendance",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -131,7 +174,7 @@ const Dashboard: React.FC = () => {
               </div>
               <p className="text-muted-foreground">View and manage all attendance records</p>
             </div>
-            <AttendanceList records={attendanceRecords} />
+            <AttendanceList records={attendanceRecords} isLoading={isLoading} />
           </TabsContent>
         )}
         <TabsContent value="profile" className="mt-6">

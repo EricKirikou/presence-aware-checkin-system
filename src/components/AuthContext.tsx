@@ -87,7 +87,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           };
           setUser(adminUser);
           toast({
-            title: "Admin login successful",
+            title: "Login successful",
             description: `Welcome back, Administrator!`,
           });
           return true;
@@ -95,9 +95,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         
         // Regular user authentication
         if (email && password) {
+          let userName = email.split('@')[0];
+          // Make the first letter uppercase and the rest lowercase
+          userName = userName.charAt(0).toUpperCase() + userName.slice(1).toLowerCase();
+          
           const mockUser: User = {
-            id: '1',
-            name: email.split('@')[0],
+            id: Math.random().toString(36).substr(2, 9),
+            name: userName,
             email: email,
             profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + email,
             role: 'employee',
