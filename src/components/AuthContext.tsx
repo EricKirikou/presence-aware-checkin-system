@@ -74,13 +74,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         // Simulate API call delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         
-        // Admin authentication
-        if (email === 'admin@checkinpro.com' && password === 'Admin@123456') {
+        // Admin authentication - add support for info@joseiksolutions.com
+        if ((email === 'admin@checkinpro.com' && password === 'Admin@123456') || 
+            (email === 'info@joseiksolutions.com' && password === 'Joseik@123456')) {
           const adminUser: User = {
             id: 'admin-1',
-            name: 'Administrator',
+            name: email === 'info@joseiksolutions.com' ? 'Joseik Admin' : 'Administrator',
             email: email,
-            profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin',
+            profileImage: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
             role: 'admin',
             position: 'System Administrator',
             isFirstLogin: false,
@@ -88,7 +89,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setUser(adminUser);
           toast({
             title: "Login successful",
-            description: `Welcome back, Administrator!`,
+            description: `Welcome back, ${adminUser.name}!`,
           });
           return true;
         }

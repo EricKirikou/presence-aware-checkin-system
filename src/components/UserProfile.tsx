@@ -13,6 +13,9 @@ const UserProfile: React.FC = () => {
     return null;
   }
 
+  // Check if user is the specific admin email
+  const isSpecialAdmin = user.email === 'info@joseiksolutions.com';
+
   return (
     <Card className="w-full">
       <CardHeader className="pb-2">
@@ -34,7 +37,7 @@ const UserProfile: React.FC = () => {
               )}
             </div>
             <Badge variant={user.role === 'admin' ? "destructive" : "outline"}>
-              {user.role === 'admin' ? 'Administrator' : 'Employee'}
+              {isSpecialAdmin ? 'Joseik Administrator' : user.role === 'admin' ? 'Administrator' : 'Employee'}
             </Badge>
           </div>
         </div>
@@ -50,7 +53,7 @@ const UserProfile: React.FC = () => {
             </div>
             <div className="text-sm">
               <p className="text-muted-foreground">Role</p>
-              <p className="capitalize">{user.role}</p>
+              <p className="capitalize">{isSpecialAdmin ? 'Joseik Admin' : user.role}</p>
             </div>
             <div className="text-sm">
               <p className="text-muted-foreground">Username</p>

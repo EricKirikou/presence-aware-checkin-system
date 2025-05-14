@@ -31,14 +31,26 @@ export const initializeDatabase = async (): Promise<boolean> => {
       if (checkError.code === '42P01') {
         console.log('Attempting to create attendance_records table...');
         
-        // Try to create the table
-        const { error: createError } = await supabase.rpc('create_attendance_table');
+        // Create table using SQL
+        const { error: createError } = await supabase.rpc('create_attendance_table', {});
         
         if (!createError) {
           console.log('Successfully created attendance_records table');
           return true;
         } else {
           console.error('Error creating table:', createError);
+          
+          // Fallback: Create the table using direct SQL
+          try {
+            const { error: sqlCreateError } = await supabase.from('attendance_records').insert([]);
+            if (!sqlCreateError || sqlCreateError.code === 'PGRST116') {
+              console.log('Table appears to be created or already exists');
+              return true;
+            }
+            console.error('Error in fallback table creation:', sqlCreateError);
+          } catch (e) {
+            console.error('Exception in fallback table creation:', e);
+          }
           return false;
         }
       }
@@ -72,8 +84,9 @@ export const hasCheckedInToday = async (userId: string): Promise<boolean> => {
       
       if (error) {
         if (error.code === '42P01') {
-          // Table doesn't exist error - return false and let the app continue
-          console.log('Table does not exist yet. Treating as no check-ins.');
+          // Table doesn't exist error - initialize and return false
+          console.log('Table does not exist yet. Initializing database...');
+          await initializeDatabase();
           return false;
         }
         
@@ -144,15 +157,40 @@ export const saveAttendanceRecord = async (record: AttendanceRecord): Promise<At
       if (error) {
         console.error('Supabase insert error:', error);
         
-        // If table doesn't exist, use mock mode
+        // If table doesn't exist, try to create it once more
         if (error.code === '42P01') {
-          console.log('Using mock data since table does not exist');
-          // Return the original record but formatted as if it came from the database
-          return {
-            ...record,
-            id: `mock-${Date.now()}`,
-            timestamp: record.timestamp
-          };
+          console.log('Table doesn\'t exist, trying to create it...');
+          const initialized = await initializeDatabase();
+          
+          if (initialized) {
+            // Try insertion again
+            const { data: retryData, error: retryError } = await supabase
+              .from('attendance_records')
+              .insert(recordToSave)
+              .select('*')
+              .single();
+              
+            if (retryError) {
+              console.error('Retry insert failed:', retryError);
+              throw retryError;
+            }
+            
+            // Return the saved record with proper type conversions
+            const savedRetryRecord: AttendanceRecord = {
+              ...retryData,
+              timestamp: new Date(retryData.timestamp),
+              location: retryData.location ? JSON.parse(retryData.location) : null
+            };
+            return savedRetryRecord;
+          } else {
+            console.log('Using mock data since table creation failed');
+            // Return the original record but formatted as if it came from the database
+            return {
+              ...record,
+              id: `mock-${Date.now()}`,
+              timestamp: record.timestamp
+            };
+          }
         }
         
         throw error;
@@ -206,9 +244,29 @@ export const getAttendanceRecords = async (userId?: string): Promise<AttendanceR
       const { data, error } = await query.order('timestamp', { ascending: false });
       
       if (error) {
-        // If table doesn't exist, return empty array
+        // If table doesn't exist, try to initialize once more
         if (error.code === '42P01') {
-          console.log('Table does not exist yet. Returning empty attendance records.');
+          console.log('Table does not exist yet, trying to create it...');
+          const initialized = await initializeDatabase();
+          
+          if (initialized) {
+            // Try fetching again
+            const { data: retryData, error: retryError } = await query;
+            
+            if (retryError) {
+              console.log('Retry query failed, returning empty array');
+              return [];
+            }
+            
+            // Return the parsed records
+            return (retryData || []).map(record => ({
+              ...record,
+              timestamp: new Date(record.timestamp),
+              location: record.location ? JSON.parse(record.location) : null
+            })) as AttendanceRecord[];
+          }
+          
+          console.log('Table initialization failed, returning empty attendance records.');
           return [];
         }
         throw error;

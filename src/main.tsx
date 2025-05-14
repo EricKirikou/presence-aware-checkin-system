@@ -14,6 +14,7 @@ initializeDatabase()
   })
   .catch(error => {
     console.error('Failed to initialize database:', error);
+    console.log('Will continue to run in mock data mode');
   });
 
 createRoot(document.getElementById("root")!).render(<App />);
