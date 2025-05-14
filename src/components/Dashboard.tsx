@@ -71,7 +71,8 @@ const Dashboard: React.FC = () => {
       // Save the record to the database
       const savedRecord = await saveAttendanceRecord(newRecord);
       
-      // Update local state with the new record
+      // Update local state with the returned record from the database
+      // This ensures proper typing as it's already been converted back from DB format
       setAttendanceRecords([savedRecord, ...attendanceRecords]);
       
       toast({
@@ -206,3 +207,4 @@ const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
+

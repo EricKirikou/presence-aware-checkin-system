@@ -42,7 +42,7 @@ export const hasCheckedInToday = async (userId: string): Promise<boolean> => {
 };
 
 // Attendance functions
-export const saveAttendanceRecord = async (record: AttendanceRecord) => {
+export const saveAttendanceRecord = async (record: AttendanceRecord): Promise<AttendanceRecord> => {
   try {
     // Check if this is a check-in (not a checkout)
     if (!record.isCheckout) {
@@ -58,7 +58,7 @@ export const saveAttendanceRecord = async (record: AttendanceRecord) => {
       }
     }
     
-    // Prepare record for storage
+    // Prepare record for storage - serialize the location object to JSON string for storage
     const recordToSave = {
       ...record,
       timestamp: record.timestamp.toISOString(),
@@ -69,14 +69,23 @@ export const saveAttendanceRecord = async (record: AttendanceRecord) => {
     
     const { data, error } = await supabase
       .from('attendance_records')
-      .insert(recordToSave);
+      .insert(recordToSave)
+      .select()
+      .single();
       
     if (error) {
       console.error('Supabase insert error:', error);
       throw error;
     }
     
-    return recordToSave;
+    // Convert the stored record back to the proper format with parsed location
+    const savedRecord: AttendanceRecord = {
+      ...data,
+      timestamp: new Date(data.timestamp),
+      location: data.location ? JSON.parse(data.location) : null
+    };
+    
+    return savedRecord;
   } catch (error) {
     console.error('Error saving attendance record:', error);
     // Re-throw the error so it can be handled by the component
@@ -84,7 +93,7 @@ export const saveAttendanceRecord = async (record: AttendanceRecord) => {
   }
 };
 
-export const getAttendanceRecords = async (userId?: string) => {
+export const getAttendanceRecords = async (userId?: string): Promise<AttendanceRecord[]> => {
   try {
     let query = supabase
       .from('attendance_records')
