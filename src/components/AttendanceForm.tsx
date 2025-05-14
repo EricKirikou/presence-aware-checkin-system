@@ -32,6 +32,7 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
   const [locationDenied, setLocationDenied] = useState(false);
   const [alreadyCheckedIn, setAlreadyCheckedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -39,11 +40,13 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
     const checkTodayAttendance = async () => {
       if (user) {
         setIsLoading(true);
+        setError(null);
         try {
           const hasCheckedIn = await hasCheckedInToday(user.id);
           setAlreadyCheckedIn(hasCheckedIn);
-        } catch (error) {
+        } catch (error: any) {
           console.error("Error checking today's attendance:", error);
+          setError("Could not check attendance status. Please try again.");
         } finally {
           setIsLoading(false);
         }
@@ -56,8 +59,10 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
   const handleFaceScanSuccess = async (faceScanLocation: { lat: number, lng: number, locationName?: string }, faceImage?: string) => {
     try {
       setLocation(faceScanLocation);
+      setError(null);
       await submitAttendance(faceScanLocation, faceImage);
-    } catch (error) {
+    } catch (error: any) {
+      setError(error.message || "Failed to record attendance");
       // Error is handled in submitAttendance
     }
   };
@@ -65,8 +70,10 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
   const handleManualSubmit = async (submitLocation: { lat: number, lng: number, locationName?: string }) => {
     try {
       setLocation(submitLocation);
+      setError(null);
       await submitAttendance(submitLocation);
-    } catch (error) {
+    } catch (error: any) {
+      setError(error.message || "Failed to record attendance");
       // Error is handled in submitAttendance
     }
   };
@@ -91,11 +98,13 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
       // Update state after successful check-in
       setAlreadyCheckedIn(true);
     } catch (error: any) {
+      console.error("Check-in error:", error);
       toast({
         title: "Check-in failed",
         description: error.message || "An error occurred while checking in",
         variant: "destructive",
       });
+      throw error; // Re-throw so the caller can handle it
     }
   };
 
@@ -112,6 +121,32 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
           </div>
           <p className="text-center mt-4 text-muted-foreground">Checking attendance records...</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Error</CardTitle>
+          <CardDescription>There was a problem checking your attendance</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert className="bg-red-50 border-red-200">
+            <AlertDescription className="text-red-700">
+              {error}
+            </AlertDescription>
+          </Alert>
+          <div className="mt-4 flex justify-center">
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-primary text-white px-4 py-2 rounded hover:bg-primary/80 transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
         </CardContent>
       </Card>
     );
