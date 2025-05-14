@@ -12,6 +12,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 // Initialize the database table if it doesn't exist
 export const initializeDatabase = async (): Promise<boolean> => {
   try {
+    console.log('Initializing database...');
+    
     // First, let's check if the table exists by trying to get its structure
     const { error: checkError } = await supabase
       .from('attendance_records')
@@ -20,13 +22,29 @@ export const initializeDatabase = async (): Promise<boolean> => {
     
     // If there's no error, the table exists
     if (!checkError) {
-      console.log('Table attendance_records already exists');
+      console.log('Table attendance_records exists and is accessible');
       return true;
+    } else {
+      console.log('Table check error:', checkError);
+      
+      // If the error is that the table doesn't exist, attempt to create it
+      if (checkError.code === '42P01') {
+        console.log('Attempting to create attendance_records table...');
+        
+        // Try to create the table
+        const { error: createError } = await supabase.rpc('create_attendance_table');
+        
+        if (!createError) {
+          console.log('Successfully created attendance_records table');
+          return true;
+        } else {
+          console.error('Error creating table:', createError);
+          return false;
+        }
+      }
+      
+      return false;
     }
-    
-    // If we can't create tables (we're using the client), we'll just mock the data locally
-    console.log('Unable to create tables directly via client. Using local mock data mode.');
-    return false;
   } catch (error) {
     console.error('Error initializing database:', error);
     return false;
@@ -36,12 +54,9 @@ export const initializeDatabase = async (): Promise<boolean> => {
 // Check if user has already checked in on the same day
 export const hasCheckedInToday = async (userId: string): Promise<boolean> => {
   try {
-    // Try to initialize the database first
-    await initializeDatabase();
-    
     const today = new Date();
-    const startOfDay = new Date(today.setHours(0, 0, 0, 0)).toISOString();
-    const endOfDay = new Date(today.setHours(23, 59, 59, 999)).toISOString();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0).toISOString();
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).toISOString();
     
     console.log('Checking for check-ins between:', startOfDay, 'and', endOfDay);
     console.log('For user:', userId);
@@ -83,7 +98,9 @@ export const hasCheckedInToday = async (userId: string): Promise<boolean> => {
 // Attendance functions
 export const saveAttendanceRecord = async (record: AttendanceRecord): Promise<AttendanceRecord> => {
   try {
-    // Initialize the database
+    console.log('Saving attendance record:', record);
+    
+    // Initialize the database to ensure table exists
     await initializeDatabase();
     
     // Check if this is a check-in (not a checkout)
@@ -98,9 +115,11 @@ export const saveAttendanceRecord = async (record: AttendanceRecord): Promise<At
         // If error is related to missing table, we can continue
         if (error.code === '42P01') {
           console.log('Table does not exist yet. Proceeding with first check-in.');
-        } else {
-          // Re-throw other errors
+        } else if (error.message === 'You have already checked in today.') {
+          // Re-throw specific check-in error
           throw error;
+        } else {
+          console.error('Error checking for existing check-ins:', error);
         }
       }
     }
@@ -109,20 +128,23 @@ export const saveAttendanceRecord = async (record: AttendanceRecord): Promise<At
     const recordToSave = {
       ...record,
       timestamp: record.timestamp.toISOString(),
-      location: record.location ? JSON.stringify(record.location) : null
+      location: record.location ? JSON.stringify(record.location) : null,
+      faceImage: record.faceImage || null
     };
     
-    console.log('Saving record:', recordToSave);
+    console.log('Saving record to Supabase:', recordToSave);
     
     try {
       const { data, error } = await supabase
         .from('attendance_records')
         .insert(recordToSave)
-        .select()
+        .select('*')
         .single();
-        
+      
       if (error) {
-        // If table doesn't exist, we're in mock mode
+        console.error('Supabase insert error:', error);
+        
+        // If table doesn't exist, use mock mode
         if (error.code === '42P01') {
           console.log('Using mock data since table does not exist');
           // Return the original record but formatted as if it came from the database
@@ -133,9 +155,10 @@ export const saveAttendanceRecord = async (record: AttendanceRecord): Promise<At
           };
         }
         
-        console.error('Supabase insert error:', error);
         throw error;
       }
+      
+      console.log('Successfully saved record:', data);
       
       // Convert the stored record back to the proper format with parsed location
       const savedRecord: AttendanceRecord = {
@@ -155,6 +178,7 @@ export const saveAttendanceRecord = async (record: AttendanceRecord): Promise<At
           timestamp: record.timestamp
         };
       }
+      console.error('Error in saveAttendanceRecord:', error);
       throw error;
     }
   } catch (error) {

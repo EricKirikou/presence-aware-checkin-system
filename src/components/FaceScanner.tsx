@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { checkLocationPermission, getCurrentLocation } from '@/utils/locationUtils';
+import { useAuth } from './AuthContext';
 
 interface FaceScannerProps {
   onSuccess: (location: { lat: number, lng: number, locationName?: string }, faceImage?: string) => void;
@@ -18,10 +19,12 @@ const FaceScanner: React.FC<FaceScannerProps> = ({ onSuccess, isCheckout = false
   const [cameraSupported, setCameraSupported] = useState(true);
   const [cameraActive, setCameraActive] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Check if camera is supported
   useEffect(() => {
@@ -82,6 +85,11 @@ const FaceScanner: React.FC<FaceScannerProps> = ({ onSuccess, isCheckout = false
     const imageData = canvas.toDataURL('image/png');
     setCapturedImage(imageData);
     stopCamera();
+    
+    // If user has a profile image, set compare mode to true
+    if (user?.profileImage) {
+      setCompareMode(true);
+    }
   };
 
   const handleScan = async () => {
@@ -124,6 +132,7 @@ const FaceScanner: React.FC<FaceScannerProps> = ({ onSuccess, isCheckout = false
         setScanning(false);
         onSuccess(location, capturedImage || undefined);
         setCapturedImage(null);
+        setCompareMode(false);
       } catch (error) {
         console.error("Geolocation error:", error);
         toast({
@@ -138,6 +147,7 @@ const FaceScanner: React.FC<FaceScannerProps> = ({ onSuccess, isCheckout = false
 
   const resetCamera = () => {
     setCapturedImage(null);
+    setCompareMode(false);
     if (!cameraActive) {
       startCamera();
     }
@@ -165,30 +175,65 @@ const FaceScanner: React.FC<FaceScannerProps> = ({ onSuccess, isCheckout = false
         </Alert>
       )}
       
-      <div className="relative w-64 h-64 bg-gray-100 rounded-lg overflow-hidden">
-        {capturedImage ? (
-          <img 
-            src={capturedImage} 
-            alt="Captured face" 
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <video 
-            ref={videoRef} 
-            autoPlay 
-            playsInline 
-            className={cn("w-full h-full object-cover", !cameraActive && "hidden")}
-          />
-        )}
-        
-        {!cameraActive && !capturedImage && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <ScanFace size={64} className="text-gray-400" />
+      {compareMode && user?.profileImage && (
+        <div className="flex flex-col items-center space-y-2">
+          <p className="text-sm font-medium">Comparing with your profile image</p>
+          <div className="flex space-x-4 items-center">
+            <div className="relative w-32 h-32 bg-gray-100 rounded-lg overflow-hidden">
+              <img 
+                src={user.profileImage} 
+                alt="Profile" 
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs py-1 text-center">
+                Profile
+              </div>
+            </div>
+            <div className="text-2xl font-bold">VS</div>
+            <div className="relative w-32 h-32 bg-gray-100 rounded-lg overflow-hidden">
+              {capturedImage && (
+                <>
+                  <img 
+                    src={capturedImage} 
+                    alt="Captured" 
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-xs py-1 text-center">
+                    Captured
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        )}
-        
-        <canvas ref={canvasRef} className="hidden" />
-      </div>
+        </div>
+      )}
+      
+      {!compareMode && (
+        <div className="relative w-64 h-64 bg-gray-100 rounded-lg overflow-hidden">
+          {capturedImage ? (
+            <img 
+              src={capturedImage} 
+              alt="Captured face" 
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <video 
+              ref={videoRef} 
+              autoPlay 
+              playsInline 
+              className={cn("w-full h-full object-cover", !cameraActive && "hidden")}
+            />
+          )}
+          
+          {!cameraActive && !capturedImage && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <ScanFace size={64} className="text-gray-400" />
+            </div>
+          )}
+          
+          <canvas ref={canvasRef} className="hidden" />
+        </div>
+      )}
       
       <div className="flex space-x-2">
         {capturedImage ? (

@@ -9,7 +9,7 @@ initializeDatabase()
   .then(isInitialized => {
     console.log(isInitialized ? 
       'Database initialized successfully' : 
-      'Using mock data mode (table does not exist)'
+      'Using mock data mode (table does not exist or cannot be accessed)'
     );
   })
   .catch(error => {
