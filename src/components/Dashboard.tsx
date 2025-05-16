@@ -12,11 +12,13 @@ import { AttendanceRecord } from '@/types/attendance';
 import ProfileSettings from './ProfileSettings';
 import { saveAttendanceRecord, getAttendanceRecords } from '@/services/supabase';
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Fetch attendance records from the database
@@ -25,12 +27,14 @@ const Dashboard: React.FC = () => {
       if (!user) return;
       
       setIsLoading(true);
+      setError(null);
       try {
         // For admin, get all records, for regular user get only their records
         const records = await getAttendanceRecords(user.role === 'admin' ? undefined : user.id);
         setAttendanceRecords(records);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching attendance records:', error);
+        setError("Failed to load attendance data. Please try again later.");
         toast({
           title: "Failed to load attendance data",
           description: "Please try again later",
@@ -92,11 +96,13 @@ const Dashboard: React.FC = () => {
 
   // Get today's records for the current user
   const todaysRecords = attendanceRecords.filter(record => {
+    if (!user) return false;
+    
     const today = new Date();
     const recordDate = new Date(record.timestamp);
     
     return (
-      record.userId === user?.id &&
+      record.userId === user.id &&
       recordDate.getDate() === today.getDate() &&
       recordDate.getMonth() === today.getMonth() &&
       recordDate.getFullYear() === today.getFullYear()
@@ -109,9 +115,21 @@ const Dashboard: React.FC = () => {
   // Check if user has checked out today
   const hasCheckedOutToday = todaysRecords.some(record => record.isCheckout);
 
+  if (!user) {
+    return (
+      <div className="max-w-4xl mx-auto p-4">
+        <Alert>
+          <AlertDescription>
+            No user data found. Please log in again.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-bold">Welcome, {user?.name}</h1>
+      <h1 className="text-2xl font-bold">Welcome, {user.name}</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="md:col-span-1 bg-primary/5">
@@ -144,32 +162,45 @@ const Dashboard: React.FC = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex justify-around text-center">
-              <div>
-                <div className="text-2xl font-bold">
-                  {attendanceRecords.filter(r => r.status === 'present' && !r.isCheckout).length}
-                </div>
-                <p className="text-xs text-muted-foreground">Present</p>
+            {isLoading ? (
+              <div className="text-center py-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
+                <p className="text-sm text-muted-foreground mt-2">Loading attendance data...</p>
               </div>
-              <div>
-                <div className="text-2xl font-bold">
-                  {attendanceRecords.filter(r => r.status === 'absent').length}
-                </div>
-                <p className="text-xs text-muted-foreground">Absent</p>
+            ) : error ? (
+              <div className="text-center text-red-500 py-2">{error}</div>
+            ) : attendanceRecords.length === 0 ? (
+              <div className="text-center py-2">
+                <p className="text-muted-foreground">No attendance records found</p>
               </div>
-              <div>
-                <div className="text-2xl font-bold">
-                  {attendanceRecords.filter(r => r.status === 'late').length}
+            ) : (
+              <div className="flex justify-around text-center">
+                <div>
+                  <div className="text-2xl font-bold">
+                    {attendanceRecords.filter(r => r.status === 'present' && !r.isCheckout).length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Present</p>
                 </div>
-                <p className="text-xs text-muted-foreground">Late</p>
-              </div>
-              <div>
-                <div className="text-2xl font-bold">
-                  {attendanceRecords.filter(r => r.isCheckout).length}
+                <div>
+                  <div className="text-2xl font-bold">
+                    {attendanceRecords.filter(r => r.status === 'absent').length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Absent</p>
                 </div>
-                <p className="text-xs text-muted-foreground">Checkouts</p>
+                <div>
+                  <div className="text-2xl font-bold">
+                    {attendanceRecords.filter(r => r.status === 'late').length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Late</p>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold">
+                    {attendanceRecords.filter(r => r.isCheckout).length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">Checkouts</p>
+                </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>

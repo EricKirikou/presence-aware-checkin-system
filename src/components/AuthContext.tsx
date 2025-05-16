@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { getUserByEmail, saveUser } from '@/services/supabase';
 
 export interface User {
   id: string;
@@ -39,7 +40,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, [user]);
 
-  const handlePasswordReset = () => {
+  const handlePasswordReset = async () => {
+    if (!user) return;
+    
     if (newPassword !== confirmPassword) {
       toast({
         title: "Passwords don't match",
@@ -58,65 +61,125 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
 
-    // In a production environment, this would update the password in the database
-    setUser(prev => prev ? { ...prev, isFirstLogin: false } : null);
-    setShowPasswordReset(false);
-    toast({
-      title: "Password created",
-      description: "Your new password has been set successfully",
-    });
+    try {
+      // Update the user's password and isFirstLogin flag
+      const updatedUser = {
+        ...user,
+        password: newPassword,
+        isFirstLogin: false
+      };
+      
+      await saveUser(updatedUser);
+      setUser(updatedUser);
+      setShowPasswordReset(false);
+      
+      toast({
+        title: "Password created",
+        description: "Your new password has been set successfully",
+      });
+    } catch (error) {
+      console.error('Password reset error:', error);
+      toast({
+        title: "Password update failed",
+        description: "Failed to update password. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
-  // In a production environment, this would connect to a secure backend
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      if (email && password) {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!email || !password) return false;
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Try to get the user from the database
+      const dbUser = await getUserByEmail(email);
+      
+      if (dbUser && dbUser.password === password) {
+        // User found and password matches
+        const authenticatedUser: User = {
+          id: dbUser.id,
+          name: dbUser.name,
+          email: dbUser.email,
+          profileImage: dbUser.profileImage || `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+          role: dbUser.role,
+          position: dbUser.position,
+          isFirstLogin: dbUser.isFirstLogin,
+        };
         
-        // Admin authentication - add support for info@joseiksolutions.com
-        if ((email === 'admin@checkinpro.com' && password === 'Admin@123456') || 
-            (email === 'info@joseiksolutions.com' && password === 'Joseik@123456')) {
-          const adminUser: User = {
-            id: 'admin-1',
-            name: email === 'info@joseiksolutions.com' ? 'Joseik Admin' : 'Administrator',
-            email: email,
-            profileImage: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-            role: 'admin',
-            position: 'System Administrator',
-            isFirstLogin: false,
-          };
-          setUser(adminUser);
-          toast({
-            title: "Login successful",
-            description: `Welcome back, ${adminUser.name}!`,
-          });
-          return true;
-        }
+        setUser(authenticatedUser);
+        toast({
+          title: "Login successful",
+          description: `Welcome back, ${authenticatedUser.name}!`,
+        });
+        return true;
+      } else if (
+        // Fallback for demo admin accounts if not in DB
+        (email === 'admin@checkinpro.com' && password === 'Admin@123456') || 
+        (email === 'info@joseiksolutions.com' && password === 'Joseik@123456')
+      ) {
+        const isJoseik = email === 'info@joseiksolutions.com';
+        const adminUser: User = {
+          id: isJoseik ? 'admin-2' : 'admin-1',
+          name: isJoseik ? 'Joseik Admin' : 'Administrator',
+          email: email,
+          profileImage: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
+          role: 'admin',
+          position: 'System Administrator',
+          isFirstLogin: false,
+        };
         
-        // Regular user authentication
-        if (email && password) {
-          let userName = email.split('@')[0];
-          // Make the first letter uppercase and the rest lowercase
-          userName = userName.charAt(0).toUpperCase() + userName.slice(1).toLowerCase();
-          
-          const mockUser: User = {
-            id: Math.random().toString(36).substr(2, 9),
-            name: userName,
-            email: email,
-            profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + email,
-            role: 'employee',
-            isFirstLogin: false,
-          };
-          
-          setUser(mockUser);
-          toast({
-            title: "Login successful",
-            description: `Welcome back, ${mockUser.name}!`,
-          });
-          return true;
-        }
+        // Save the admin user to database for future logins
+        await saveUser({
+          ...adminUser,
+          password
+        });
+        
+        setUser(adminUser);
+        toast({
+          title: "Login successful",
+          description: `Welcome back, ${adminUser.name}!`,
+        });
+        return true;
+      } else if (!dbUser && email && password) {
+        // For demo purposes - create a new regular user account
+        let userName = email.split('@')[0];
+        // Make the first letter uppercase and the rest lowercase
+        userName = userName.charAt(0).toUpperCase() + userName.slice(1).toLowerCase();
+        
+        const newUser = {
+          id: Math.random().toString(36).substr(2, 9),
+          name: userName,
+          email: email,
+          profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + email,
+          role: 'employee',
+          isFirstLogin: false,
+          password
+        };
+        
+        // Save the new user to the database
+        await saveUser(newUser);
+        
+        const mockUser: User = {
+          ...newUser,
+          role: 'employee' as 'employee'
+        };
+        
+        setUser(mockUser);
+        toast({
+          title: "Login successful",
+          description: `Welcome back, ${mockUser.name}!`,
+        });
+        return true;
       }
+      
+      toast({
+        title: "Login failed",
+        description: "Invalid email or password",
+        variant: "destructive",
+      });
       return false;
     } catch (error) {
       console.error('Login error:', error);
@@ -129,31 +192,50 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  // In a production environment, this would connect to a secure backend
   const signup = async (email: string, password: string, name: string): Promise<boolean> => {
     try {
-      if (email && password && name) {
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Create user account
-        const newUser: User = {
-          id: Math.random().toString(36).substr(2, 9),
-          name: name,
-          email: email,
-          profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + email,
-          role: 'employee',
-          isFirstLogin: false,
-        };
-        
-        setUser(newUser);
+      if (!email || !password || !name) return false;
+      
+      // Check if user already exists
+      const existingUser = await getUserByEmail(email);
+      if (existingUser) {
         toast({
-          title: "Account created",
-          description: "Your account has been created successfully!",
+          title: "Signup failed",
+          description: "User with this email already exists",
+          variant: "destructive",
         });
-        return true;
+        return false;
       }
-      return false;
+      
+      // Create new user
+      const newUser = {
+        id: Math.random().toString(36).substr(2, 9),
+        name,
+        email,
+        profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + email,
+        role: 'employee',
+        isFirstLogin: false,
+        password
+      };
+      
+      // Save to database
+      await saveUser(newUser);
+      
+      // Set in state
+      setUser({
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        profileImage: newUser.profileImage,
+        role: 'employee',
+        isFirstLogin: false
+      });
+      
+      toast({
+        title: "Account created",
+        description: "Your account has been created successfully!",
+      });
+      return true;
     } catch (error) {
       console.error('Signup error:', error);
       toast({
@@ -165,8 +247,30 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   };
 
-  const updateProfile = (updatedUser: User) => {
-    setUser(updatedUser);
+  const updateProfile = async (updatedUser: User) => {
+    try {
+      // Save to database
+      await saveUser({
+        ...updatedUser,
+        // We need to include password when saving to database
+        password: (user as any)?.password || 'default-password'
+      });
+      
+      // Update local state
+      setUser(updatedUser);
+      
+      toast({
+        title: "Profile updated",
+        description: "Your profile has been updated successfully",
+      });
+    } catch (error) {
+      console.error('Profile update error:', error);
+      toast({
+        title: "Update failed",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const logout = () => {

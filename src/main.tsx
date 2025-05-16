@@ -2,17 +2,17 @@
 import { createRoot } from 'react-dom/client'
 import App from './App.tsx'
 import './index.css'
-import { initializeDatabase } from './services/supabase.ts'
+import { initializeDatabase, initializeUsersTable } from './services/supabase.ts'
 
-// Initialize the database when the app starts
-initializeDatabase()
-  .then(isInitialized => {
-    console.log(isInitialized ? 
-      'Database initialized successfully' : 
-      'Using mock data mode (table does not exist or cannot be accessed)'
+// Initialize the database tables when the app starts
+Promise.all([initializeDatabase(), initializeUsersTable()])
+  .then(([attendanceInitialized, usersInitialized]) => {
+    console.log(
+      attendanceInitialized ? 'Attendance table initialized' : 'Using mock attendance data mode',
+      usersInitialized ? 'Users table initialized' : 'Using mock users data mode'
     );
     
-    // Render the app after initialization attempt
+    // Render the app after initialization attempts
     createRoot(document.getElementById("root")!).render(<App />);
   })
   .catch(error => {

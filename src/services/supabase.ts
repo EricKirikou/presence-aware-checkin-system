@@ -31,29 +31,49 @@ export const initializeDatabase = async (): Promise<boolean> => {
       if (checkError.code === '42P01') {
         console.log('Table does not exist. Attempting to create attendance_records table...');
         
-        // Create the table using SQL directly
-        const { error: createError } = await supabase.rpc('create_table', {
-          table_name: 'attendance_records',
-          table_definition: `
-            id TEXT PRIMARY KEY,
-            userId TEXT NOT NULL,
-            userName TEXT NOT NULL,
-            email TEXT NOT NULL, 
-            status TEXT NOT NULL,
-            method TEXT NOT NULL,
-            location JSONB,
-            timestamp TIMESTAMPTZ NOT NULL,
-            isCheckout BOOLEAN DEFAULT FALSE,
-            faceImage TEXT
+        // Use SQL query to create the table
+        const { error: sqlError } = await supabase.rpc('execute_sql', {
+          sql: `
+            CREATE TABLE IF NOT EXISTS attendance_records (
+              id TEXT PRIMARY KEY,
+              "userId" TEXT NOT NULL,
+              "userName" TEXT NOT NULL,
+              email TEXT NOT NULL, 
+              status TEXT NOT NULL,
+              method TEXT NOT NULL,
+              location JSONB,
+              timestamp TIMESTAMPTZ NOT NULL,
+              "isCheckout" BOOLEAN DEFAULT FALSE,
+              "faceImage" TEXT
+            )
           `
         });
         
-        if (createError) {
-          console.log('Error creating table using RPC:', createError);
+        if (sqlError) {
+          console.log('Error creating table using SQL:', sqlError);
           
-          // If RPC fails, fall back to using mock data
-          console.log('Using mock data mode since table creation failed');
-          return false;
+          // Try to create using standard insert approach - this can create tables in some cases
+          const { error: insertError } = await supabase
+            .from('attendance_records')
+            .insert({
+              id: 'init-record',
+              userId: 'system',
+              userName: 'System',
+              email: 'system@example.com',
+              status: 'present',
+              method: 'manual',
+              location: null,
+              timestamp: new Date().toISOString(),
+              isCheckout: false
+            });
+            
+          if (insertError && insertError.code === '42P01') {
+            console.log('Table creation failed with insert approach too:', insertError);
+            return false;
+          } else {
+            console.log('Table created through insert');
+            return true;
+          }
         }
         
         console.log('Successfully created attendance_records table');
@@ -64,6 +84,94 @@ export const initializeDatabase = async (): Promise<boolean> => {
     }
   } catch (error) {
     console.error('Error initializing database:', error);
+    return false;
+  }
+};
+
+// Create users table if it doesn't exist
+export const initializeUsersTable = async (): Promise<boolean> => {
+  try {
+    console.log('Initializing users table...');
+    
+    // Check if the table exists
+    const { error: checkError } = await supabase
+      .from('users')
+      .select('id')
+      .limit(1);
+    
+    // If there's no error, the table exists
+    if (!checkError) {
+      console.log('Table users exists and is accessible');
+      return true;
+    } else {
+      console.log('Users table check error:', checkError);
+      
+      // If the error is that the table doesn't exist, attempt to create it
+      if (checkError.code === '42P01') {
+        console.log('Users table does not exist. Attempting to create users table...');
+        
+        // Use SQL query to create the table
+        const { error: sqlError } = await supabase.rpc('execute_sql', {
+          sql: `
+            CREATE TABLE IF NOT EXISTS users (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              email TEXT UNIQUE NOT NULL,
+              "profileImage" TEXT,
+              role TEXT NOT NULL,
+              position TEXT,
+              password TEXT,
+              "isFirstLogin" BOOLEAN DEFAULT TRUE
+            )
+          `
+        });
+        
+        if (sqlError) {
+          console.log('Error creating users table using SQL:', sqlError);
+          
+          // Try to create using standard insert approach
+          const { error: insertError } = await supabase
+            .from('users')
+            .insert({
+              id: 'admin-1',
+              name: 'Administrator',
+              email: 'admin@checkinpro.com',
+              profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin@checkinpro.com',
+              role: 'admin',
+              position: 'System Administrator',
+              password: 'Admin@123456',
+              isFirstLogin: false
+            });
+            
+          if (insertError && insertError.code === '42P01') {
+            console.log('Users table creation failed with insert approach too:', insertError);
+            return false;
+          } else {
+            // Add the Joseik admin user too
+            await supabase.from('users').insert({
+              id: 'admin-2',
+              name: 'Joseik Admin',
+              email: 'info@joseiksolutions.com',
+              profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=info@joseiksolutions.com',
+              role: 'admin',
+              position: 'System Administrator',
+              password: 'Joseik@123456',
+              isFirstLogin: false
+            });
+            
+            console.log('Users table created through insert');
+            return true;
+          }
+        }
+        
+        console.log('Successfully created users table');
+        return true;
+      }
+      
+      return false;
+    }
+  } catch (error) {
+    console.error('Error initializing users table:', error);
     return false;
   }
 };
@@ -271,3 +379,73 @@ export const getAttendanceRecords = async (userId?: string): Promise<AttendanceR
     return [];
   }
 };
+
+// User management functions
+export async function getUserByEmail(email: string) {
+  try {
+    await initializeUsersTable(); // Ensure the users table exists
+    
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+      
+    if (error) {
+      console.error('Error getting user by email:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in getUserByEmail:', error);
+    return null;
+  }
+}
+
+export async function saveUser(user: any) {
+  try {
+    await initializeUsersTable(); // Ensure the users table exists
+    
+    // Check if user already exists
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', user.email)
+      .single();
+      
+    if (existingUser) {
+      // Update existing user
+      const { data, error } = await supabase
+        .from('users')
+        .update(user)
+        .eq('id', existingUser.id)
+        .select('*')
+        .single();
+        
+      if (error) {
+        console.error('Error updating user:', error);
+        return null;
+      }
+      
+      return data;
+    } else {
+      // Create new user
+      const { data, error } = await supabase
+        .from('users')
+        .insert(user)
+        .select('*')
+        .single();
+        
+      if (error) {
+        console.error('Error creating user:', error);
+        return null;
+      }
+      
+      return data;
+    }
+  } catch (error) {
+    console.error('Error in saveUser:', error);
+    return null;
+  }
+}
