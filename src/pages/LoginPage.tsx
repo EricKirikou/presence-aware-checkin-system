@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate } from 'react-router-dom';
-import { Fingerprint, LogIn, UserCheck } from 'lucide-react';
+import { LogIn } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const LoginPage: React.FC = () => {
@@ -50,11 +50,6 @@ const LoginPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const loginAsAdmin = () => {
-    setEmail('info@joseiksolutions.com');
-    setPassword('Joseik@123456');
   };
 
   return (
@@ -106,18 +101,9 @@ const LoginPage: React.FC = () => {
                   />
                 </div>
               </CardContent>
-              <CardFooter className="flex flex-col space-y-2">
+              <CardFooter>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? 'Signing in...' : 'Sign In'}
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="w-full flex gap-2" 
-                  onClick={loginAsAdmin}
-                >
-                  <UserCheck className="h-4 w-4" />
-                  Admin Login
                 </Button>
               </CardFooter>
             </form>
@@ -190,7 +176,7 @@ const LoginPage: React.FC = () => {
       </Card>
       
       <p className="text-center text-sm text-gray-600 mt-4">
-        Demo: Use any email and password
+        Please use valid credentials to login
       </p>
     </div>
   );

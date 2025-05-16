@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -113,64 +112,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         toast({
           title: "Login successful",
           description: `Welcome back, ${authenticatedUser.name}!`,
-        });
-        return true;
-      } else if (
-        // Fallback for demo admin accounts if not in DB
-        (email === 'admin@checkinpro.com' && password === 'Admin@123456') || 
-        (email === 'info@joseiksolutions.com' && password === 'Joseik@123456')
-      ) {
-        const isJoseik = email === 'info@joseiksolutions.com';
-        const adminUser: User = {
-          id: isJoseik ? 'admin-2' : 'admin-1',
-          name: isJoseik ? 'Joseik Admin' : 'Administrator',
-          email: email,
-          profileImage: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-          role: 'admin',
-          position: 'System Administrator',
-          isFirstLogin: false,
-        };
-        
-        // Save the admin user to database for future logins
-        await saveUser({
-          ...adminUser,
-          password
-        });
-        
-        setUser(adminUser);
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${adminUser.name}!`,
-        });
-        return true;
-      } else if (!dbUser && email && password) {
-        // For demo purposes - create a new regular user account
-        let userName = email.split('@')[0];
-        // Make the first letter uppercase and the rest lowercase
-        userName = userName.charAt(0).toUpperCase() + userName.slice(1).toLowerCase();
-        
-        const newUser = {
-          id: Math.random().toString(36).substr(2, 9),
-          name: userName,
-          email: email,
-          profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + email,
-          role: 'employee',
-          isFirstLogin: false,
-          password
-        };
-        
-        // Save the new user to the database
-        await saveUser(newUser);
-        
-        const mockUser: User = {
-          ...newUser,
-          role: 'employee' as 'employee'
-        };
-        
-        setUser(mockUser);
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${mockUser.name}!`,
         });
         return true;
       }
