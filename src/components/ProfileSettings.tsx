@@ -9,24 +9,50 @@ import { useAuth } from './AuthContext';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { UserCog } from 'lucide-react';
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+
+// Define the schema for profile form validation
+const profileFormSchema = z.object({
+  name: z.string().min(2, { message: "Name must be at least 2 characters." }),
+  position: z.string().optional(),
+});
+
+type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
 const ProfileSettings: React.FC = () => {
   const { user, updateProfile } = useAuth();
   const { toast } = useToast();
   
-  const [fullName, setFullName] = useState(user?.name || '');
   const [profileImage, setProfileImage] = useState(user?.profileImage || '');
-  const [position, setPosition] = useState(user?.position || '');
   const [isUploading, setIsUploading] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
+  // Initialize form with default values from user
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+      name: user?.name || '',
+      position: user?.position || '',
+    },
+  });
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setIsUploading(true);
-      // Simulate image upload
+      // Convert image file to base64 string
       const reader = new FileReader();
       reader.onload = (event) => {
         if (event.target?.result) {
@@ -38,16 +64,15 @@ const ProfileSettings: React.FC = () => {
     }
   };
   
-  const handleSaveProfile = () => {
+  const handleSaveProfile = (values: ProfileFormValues) => {
     if (!user) return;
     
-    // Here we would normally save to the database
-    // For now we'll just update the Auth context
+    // Update user profile with form values and the new profile image
     updateProfile({
       ...user,
-      name: fullName,
+      name: values.name,
       profileImage,
-      position
+      position: values.position,
     });
     
     toast({
@@ -104,8 +129,8 @@ const ProfileSettings: React.FC = () => {
         <CardContent className="space-y-6">
           <div className="flex flex-col items-center space-y-4">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={profileImage} alt={fullName} />
-              <AvatarFallback>{fullName.substring(0, 2).toUpperCase()}</AvatarFallback>
+              <AvatarImage src={profileImage} alt={user.name} />
+              <AvatarFallback>{user.name.substring(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
             
             <div className="space-y-2 w-full max-w-xs">
@@ -125,53 +150,62 @@ const ProfileSettings: React.FC = () => {
           
           <Separator />
           
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="full-name">Full Name</Label>
-              <Input
-                id="full-name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Enter your full name"
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSaveProfile)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter your full name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="username">Username</Label>
-              <Input
-                id="username"
-                value={user.email.split('@')[0]}
-                disabled
-                className="bg-muted"
+              
+              <div className="grid gap-2">
+                <Label htmlFor="username">Username</Label>
+                <Input
+                  id="username"
+                  value={user.email.split('@')[0]}
+                  disabled
+                  className="bg-muted"
+                />
+                <p className="text-xs text-muted-foreground">Username cannot be changed</p>
+              </div>
+              
+              <FormField
+                control={form.control}
+                name="position"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Staff Position</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter your position" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              <p className="text-xs text-muted-foreground">Username cannot be changed</p>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="position">Staff Position</Label>
-              <Input
-                id="position"
-                value={position}
-                onChange={(e) => setPosition(e.target.value)}
-                placeholder="Enter your position"
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={user.email}
-                disabled
-                className="bg-muted"
-              />
-            </div>
-          </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={user.email}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
+              
+              <Button type="submit">Save Changes</Button>
+            </form>
+          </Form>
         </CardContent>
-        <CardFooter>
-          <Button onClick={handleSaveProfile}>Save Changes</Button>
-        </CardFooter>
       </Card>
       
       <Card>
