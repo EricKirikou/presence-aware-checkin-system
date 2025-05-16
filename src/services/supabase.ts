@@ -29,30 +29,35 @@ export const initializeDatabase = async (): Promise<boolean> => {
       
       // If the error is that the table doesn't exist, attempt to create it
       if (checkError.code === '42P01') {
-        console.log('Attempting to create attendance_records table...');
+        console.log('Table does not exist. Attempting to create attendance_records table...');
         
-        // Create table using SQL
-        const { error: createError } = await supabase.rpc('create_attendance_table', {});
+        // Create the table using SQL directly
+        const { error: createError } = await supabase.rpc('create_table', {
+          table_name: 'attendance_records',
+          table_definition: `
+            id TEXT PRIMARY KEY,
+            userId TEXT NOT NULL,
+            userName TEXT NOT NULL,
+            email TEXT NOT NULL, 
+            status TEXT NOT NULL,
+            method TEXT NOT NULL,
+            location JSONB,
+            timestamp TIMESTAMPTZ NOT NULL,
+            isCheckout BOOLEAN DEFAULT FALSE,
+            faceImage TEXT
+          `
+        });
         
-        if (!createError) {
-          console.log('Successfully created attendance_records table');
-          return true;
-        } else {
-          console.error('Error creating table:', createError);
+        if (createError) {
+          console.log('Error creating table using RPC:', createError);
           
-          // Fallback: Create the table using direct SQL
-          try {
-            const { error: sqlCreateError } = await supabase.from('attendance_records').insert([]);
-            if (!sqlCreateError || sqlCreateError.code === 'PGRST116') {
-              console.log('Table appears to be created or already exists');
-              return true;
-            }
-            console.error('Error in fallback table creation:', sqlCreateError);
-          } catch (e) {
-            console.error('Exception in fallback table creation:', e);
-          }
+          // If RPC fails, fall back to using mock data
+          console.log('Using mock data mode since table creation failed');
           return false;
         }
+        
+        console.log('Successfully created attendance_records table');
+        return true;
       }
       
       return false;
@@ -97,7 +102,7 @@ export const hasCheckedInToday = async (userId: string): Promise<boolean> => {
       console.log('Found records:', data);
       // If we have any records, the user has already checked in today
       return data && data.length > 0;
-    } catch (error) {
+    } catch (error: any) {
       // For any other error, log and return false (assume no check-in)
       console.error('Supabase query error:', error);
       return false;
@@ -157,40 +162,14 @@ export const saveAttendanceRecord = async (record: AttendanceRecord): Promise<At
       if (error) {
         console.error('Supabase insert error:', error);
         
-        // If table doesn't exist, try to create it once more
+        // If the table doesn't exist, use mock data
         if (error.code === '42P01') {
-          console.log('Table doesn\'t exist, trying to create it...');
-          const initialized = await initializeDatabase();
-          
-          if (initialized) {
-            // Try insertion again
-            const { data: retryData, error: retryError } = await supabase
-              .from('attendance_records')
-              .insert(recordToSave)
-              .select('*')
-              .single();
-              
-            if (retryError) {
-              console.error('Retry insert failed:', retryError);
-              throw retryError;
-            }
-            
-            // Return the saved record with proper type conversions
-            const savedRetryRecord: AttendanceRecord = {
-              ...retryData,
-              timestamp: new Date(retryData.timestamp),
-              location: retryData.location ? JSON.parse(retryData.location) : null
-            };
-            return savedRetryRecord;
-          } else {
-            console.log('Using mock data since table creation failed');
-            // Return the original record but formatted as if it came from the database
-            return {
-              ...record,
-              id: `mock-${Date.now()}`,
-              timestamp: record.timestamp
-            };
-          }
+          console.log('Using mock data since table does not exist');
+          return {
+            ...record,
+            id: `mock-${Date.now()}`,
+            timestamp: record.timestamp
+          };
         }
         
         throw error;

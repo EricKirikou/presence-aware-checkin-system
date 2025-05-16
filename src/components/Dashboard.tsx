@@ -90,6 +90,25 @@ const Dashboard: React.FC = () => {
   // Check if user is an admin
   const isAdmin = user?.role === 'admin';
 
+  // Get today's records for the current user
+  const todaysRecords = attendanceRecords.filter(record => {
+    const today = new Date();
+    const recordDate = new Date(record.timestamp);
+    
+    return (
+      record.userId === user?.id &&
+      recordDate.getDate() === today.getDate() &&
+      recordDate.getMonth() === today.getMonth() &&
+      recordDate.getFullYear() === today.getFullYear()
+    );
+  });
+
+  // Check if user has checked in today
+  const hasCheckedInToday = todaysRecords.some(record => !record.isCheckout);
+  
+  // Check if user has checked out today
+  const hasCheckedOutToday = todaysRecords.some(record => record.isCheckout);
+
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
       <h1 className="text-2xl font-bold">Welcome, {user?.name}</h1>
@@ -104,9 +123,7 @@ const Dashboard: React.FC = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {attendanceRecords.some(r => 
-                r.timestamp.toDateString() === new Date().toDateString() && !r.isCheckout
-              ) ? 'Checked In' : 'Not Checked In'}
+              {hasCheckedInToday ? (hasCheckedOutToday ? 'Completed Day' : 'Checked In') : 'Not Checked In'}
             </div>
             <p className="text-xs text-muted-foreground">
               {new Date().toLocaleDateString(undefined, { 
