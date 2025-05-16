@@ -87,6 +87,9 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Check if user is an admin
+  const isAdmin = user?.role === 'admin';
+
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
       <h1 className="text-2xl font-bold">Welcome, {user?.name}</h1>
@@ -158,7 +161,7 @@ const Dashboard: React.FC = () => {
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="check-in">Check In</TabsTrigger>
           <TabsTrigger value="check-out">Check Out</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
+          {isAdmin && <TabsTrigger value="history">History</TabsTrigger>}
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
@@ -168,16 +171,18 @@ const Dashboard: React.FC = () => {
         <TabsContent value="check-out" className="mt-6">
           <CheckoutAttendance onSubmit={handleAttendanceSubmit} />
         </TabsContent>
-        <TabsContent value="history" className="mt-6">
-          <div className="mb-4">
-            <div className="flex items-center gap-2 text-primary">
-              <Users className="h-5 w-5" />
-              <h2 className="text-xl font-semibold">Attendance History</h2>
+        {isAdmin && (
+          <TabsContent value="history" className="mt-6">
+            <div className="mb-4">
+              <div className="flex items-center gap-2 text-primary">
+                <Users className="h-5 w-5" />
+                <h2 className="text-xl font-semibold">Attendance History</h2>
+              </div>
+              <p className="text-muted-foreground">View and manage all attendance records</p>
             </div>
-            <p className="text-muted-foreground">View and manage all attendance records</p>
-          </div>
-          <AttendanceList records={attendanceRecords} isLoading={isLoading} />
-        </TabsContent>
+            <AttendanceList records={attendanceRecords} isLoading={isLoading} />
+          </TabsContent>
+        )}
         <TabsContent value="profile" className="mt-6">
           <UserProfile />
         </TabsContent>
