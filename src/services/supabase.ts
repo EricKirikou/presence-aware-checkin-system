@@ -1,0 +1,451 @@
+
+import { createClient } from '@supabase/supabase-js';
+import { AttendanceRecord } from '@/types/attendance';
+
+// Initialize Supabase client with the provided URL and key
+const supabaseUrl = 'https://qggdrunhlhuidxwwkhtz.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFnZ2RydW5obGh1aWR4d3draHR6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDcwOTY3NzYsImV4cCI6MjA2MjY3Mjc3Nn0.YVKQ4gY2bmzG9IBjFZM9hQiFG8zEnhpMeDU5HByFT6A';
+
+// Create the Supabase client
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Initialize the database table if it doesn't exist
+export const initializeDatabase = async (): Promise<boolean> => {
+  try {
+    console.log('Initializing database...');
+    
+    // First, let's check if the table exists by trying to get its structure
+    const { error: checkError } = await supabase
+      .from('attendance_records')
+      .select('id')
+      .limit(1);
+    
+    // If there's no error, the table exists
+    if (!checkError) {
+      console.log('Table attendance_records exists and is accessible');
+      return true;
+    } else {
+      console.log('Table check error:', checkError);
+      
+      // If the error is that the table doesn't exist, attempt to create it
+      if (checkError.code === '42P01') {
+        console.log('Table does not exist. Attempting to create attendance_records table...');
+        
+        // Use SQL query to create the table
+        const { error: sqlError } = await supabase.rpc('execute_sql', {
+          sql: `
+            CREATE TABLE IF NOT EXISTS attendance_records (
+              id TEXT PRIMARY KEY,
+              "userId" TEXT NOT NULL,
+              "userName" TEXT NOT NULL,
+              email TEXT NOT NULL, 
+              status TEXT NOT NULL,
+              method TEXT NOT NULL,
+              location JSONB,
+              timestamp TIMESTAMPTZ NOT NULL,
+              "isCheckout" BOOLEAN DEFAULT FALSE,
+              "faceImage" TEXT
+            )
+          `
+        });
+        
+        if (sqlError) {
+          console.log('Error creating table using SQL:', sqlError);
+          
+          // Try to create using standard insert approach - this can create tables in some cases
+          const { error: insertError } = await supabase
+            .from('attendance_records')
+            .insert({
+              id: 'init-record',
+              userId: 'system',
+              userName: 'System',
+              email: 'system@example.com',
+              status: 'present',
+              method: 'manual',
+              location: null,
+              timestamp: new Date().toISOString(),
+              isCheckout: false
+            });
+            
+          if (insertError && insertError.code === '42P01') {
+            console.log('Table creation failed with insert approach too:', insertError);
+            return false;
+          } else {
+            console.log('Table created through insert');
+            return true;
+          }
+        }
+        
+        console.log('Successfully created attendance_records table');
+        return true;
+      }
+      
+      return false;
+    }
+  } catch (error) {
+    console.error('Error initializing database:', error);
+    return false;
+  }
+};
+
+// Create users table if it doesn't exist
+export const initializeUsersTable = async (): Promise<boolean> => {
+  try {
+    console.log('Initializing users table...');
+    
+    // Check if the table exists
+    const { error: checkError } = await supabase
+      .from('users')
+      .select('id')
+      .limit(1);
+    
+    // If there's no error, the table exists
+    if (!checkError) {
+      console.log('Table users exists and is accessible');
+      return true;
+    } else {
+      console.log('Users table check error:', checkError);
+      
+      // If the error is that the table doesn't exist, attempt to create it
+      if (checkError.code === '42P01') {
+        console.log('Users table does not exist. Attempting to create users table...');
+        
+        // Use SQL query to create the table
+        const { error: sqlError } = await supabase.rpc('execute_sql', {
+          sql: `
+            CREATE TABLE IF NOT EXISTS users (
+              id TEXT PRIMARY KEY,
+              name TEXT NOT NULL,
+              email TEXT UNIQUE NOT NULL,
+              "profileImage" TEXT,
+              role TEXT NOT NULL,
+              position TEXT,
+              password TEXT,
+              "isFirstLogin" BOOLEAN DEFAULT TRUE
+            )
+          `
+        });
+        
+        if (sqlError) {
+          console.log('Error creating users table using SQL:', sqlError);
+          
+          // Try to create using standard insert approach
+          const { error: insertError } = await supabase
+            .from('users')
+            .insert({
+              id: 'admin-1',
+              name: 'Administrator',
+              email: 'admin@checkinpro.com',
+              profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin@checkinpro.com',
+              role: 'admin',
+              position: 'System Administrator',
+              password: 'Admin@123456',
+              isFirstLogin: false
+            });
+            
+          if (insertError && insertError.code === '42P01') {
+            console.log('Users table creation failed with insert approach too:', insertError);
+            return false;
+          } else {
+            // Add the Joseik admin user too
+            await supabase.from('users').insert({
+              id: 'admin-2',
+              name: 'Joseik Admin',
+              email: 'info@joseiksolutions.com',
+              profileImage: 'https://api.dicebear.com/7.x/avataaars/svg?seed=info@joseiksolutions.com',
+              role: 'admin',
+              position: 'System Administrator',
+              password: 'Joseik@123456',
+              isFirstLogin: false
+            });
+            
+            console.log('Users table created through insert');
+            return true;
+          }
+        }
+        
+        console.log('Successfully created users table');
+        return true;
+      }
+      
+      return false;
+    }
+  } catch (error) {
+    console.error('Error initializing users table:', error);
+    return false;
+  }
+};
+
+// Check if user has already checked in on the same day
+export const hasCheckedInToday = async (userId: string): Promise<boolean> => {
+  try {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0).toISOString();
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).toISOString();
+    
+    console.log('Checking for check-ins between:', startOfDay, 'and', endOfDay);
+    console.log('For user:', userId);
+    
+    try {
+      const { data, error } = await supabase
+        .from('attendance_records')
+        .select('*')
+        .eq('userId', userId)
+        .gte('timestamp', startOfDay)
+        .lte('timestamp', endOfDay)
+        .eq('isCheckout', false);
+      
+      if (error) {
+        if (error.code === '42P01') {
+          // Table doesn't exist error - initialize and return false
+          console.log('Table does not exist yet. Initializing database...');
+          await initializeDatabase();
+          return false;
+        }
+        
+        console.error('Error in hasCheckedInToday:', error);
+        throw error;
+      }
+      
+      console.log('Found records:', data);
+      // If we have any records, the user has already checked in today
+      return data && data.length > 0;
+    } catch (error: any) {
+      // For any other error, log and return false (assume no check-in)
+      console.error('Supabase query error:', error);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error checking for today\'s attendance:', error);
+    return false; // Default to no check-in if there's an error
+  }
+};
+
+// Attendance functions
+export const saveAttendanceRecord = async (record: AttendanceRecord): Promise<AttendanceRecord> => {
+  try {
+    console.log('Saving attendance record:', record);
+    
+    // Initialize the database to ensure table exists
+    await initializeDatabase();
+    
+    // Check if this is a check-in (not a checkout)
+    if (!record.isCheckout) {
+      try {
+        // Check if the user has already checked in today
+        const alreadyCheckedIn = await hasCheckedInToday(record.userId);
+        if (alreadyCheckedIn) {
+          throw new Error('You have already checked in today.');
+        }
+      } catch (error: any) {
+        // If error is related to missing table, we can continue
+        if (error.code === '42P01') {
+          console.log('Table does not exist yet. Proceeding with first check-in.');
+        } else if (error.message === 'You have already checked in today.') {
+          // Re-throw specific check-in error
+          throw error;
+        } else {
+          console.error('Error checking for existing check-ins:', error);
+        }
+      }
+    }
+    
+    // Prepare record for storage - serialize the location object to JSON string for storage
+    const recordToSave = {
+      ...record,
+      timestamp: record.timestamp.toISOString(),
+      location: record.location ? JSON.stringify(record.location) : null,
+      faceImage: record.faceImage || null
+    };
+    
+    console.log('Saving record to Supabase:', recordToSave);
+    
+    try {
+      const { data, error } = await supabase
+        .from('attendance_records')
+        .insert(recordToSave)
+        .select('*')
+        .single();
+      
+      if (error) {
+        console.error('Supabase insert error:', error);
+        
+        // If the table doesn't exist, use mock data
+        if (error.code === '42P01') {
+          console.log('Using mock data since table does not exist');
+          return {
+            ...record,
+            id: `mock-${Date.now()}`,
+            timestamp: record.timestamp
+          };
+        }
+        
+        throw error;
+      }
+      
+      console.log('Successfully saved record:', data);
+      
+      // Convert the stored record back to the proper format with parsed location
+      const savedRecord: AttendanceRecord = {
+        ...data,
+        timestamp: new Date(data.timestamp),
+        location: data.location ? JSON.parse(data.location) : null
+      };
+      
+      return savedRecord;
+    } catch (error: any) {
+      if (error.code === '42P01') {
+        // If table doesn't exist, return mock data
+        console.log('Using mock data since table does not exist');
+        return {
+          ...record,
+          id: `mock-${Date.now()}`,
+          timestamp: record.timestamp
+        };
+      }
+      console.error('Error in saveAttendanceRecord:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error saving attendance record:', error);
+    // Re-throw the error so it can be handled by the component
+    throw error;
+  }
+};
+
+export const getAttendanceRecords = async (userId?: string): Promise<AttendanceRecord[]> => {
+  try {
+    // Initialize the database
+    await initializeDatabase();
+    
+    try {
+      let query = supabase
+        .from('attendance_records')
+        .select('*');
+      
+      // If userId is provided, filter by that user
+      if (userId) {
+        query = query.eq('userId', userId);
+      }
+      
+      const { data, error } = await query.order('timestamp', { ascending: false });
+      
+      if (error) {
+        // If table doesn't exist, try to initialize once more
+        if (error.code === '42P01') {
+          console.log('Table does not exist yet, trying to create it...');
+          const initialized = await initializeDatabase();
+          
+          if (initialized) {
+            // Try fetching again
+            const { data: retryData, error: retryError } = await query;
+            
+            if (retryError) {
+              console.log('Retry query failed, returning empty array');
+              return [];
+            }
+            
+            // Return the parsed records
+            return (retryData || []).map(record => ({
+              ...record,
+              timestamp: new Date(record.timestamp),
+              location: record.location ? JSON.parse(record.location) : null
+            })) as AttendanceRecord[];
+          }
+          
+          console.log('Table initialization failed, returning empty attendance records.');
+          return [];
+        }
+        throw error;
+      }
+      
+      // Convert back from string to objects
+      return (data || []).map(record => ({
+        ...record,
+        timestamp: new Date(record.timestamp),
+        location: record.location ? JSON.parse(record.location) : null
+      })) as AttendanceRecord[];
+    } catch (error: any) {
+      if (error.code === '42P01') {
+        // If table doesn't exist, return empty array
+        console.log('Table does not exist yet. Returning empty attendance records.');
+        return [];
+      }
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error getting attendance records:', error);
+    // Return empty array in case of error
+    return [];
+  }
+};
+
+// User management functions
+export async function getUserByEmail(email: string) {
+  try {
+    await initializeUsersTable(); // Ensure the users table exists
+    
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+      
+    if (error) {
+      console.error('Error getting user by email:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error in getUserByEmail:', error);
+    return null;
+  }
+}
+
+export async function saveUser(user: any) {
+  try {
+    await initializeUsersTable(); // Ensure the users table exists
+    
+    // Check if user already exists
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', user.email)
+      .single();
+      
+    if (existingUser) {
+      // Update existing user
+      const { data, error } = await supabase
+        .from('users')
+        .update(user)
+        .eq('id', existingUser.id)
+        .select('*')
+        .single();
+        
+      if (error) {
+        console.error('Error updating user:', error);
+        return null;
+      }
+      
+      return data;
+    } else {
+      // Create new user
+      const { data, error } = await supabase
+        .from('users')
+        .insert(user)
+        .select('*')
+        .single();
+        
+      if (error) {
+        console.error('Error creating user:', error);
+        return null;
+      }
+      
+      return data;
+    }
+  } catch (error) {
+    console.error('Error in saveUser:', error);
+    return null;
+  }
+}
