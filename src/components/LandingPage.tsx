@@ -132,11 +132,11 @@ const LandingPage: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer className="bg-green-900 text-white py-12">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="mb-6 md:mb-0">
-              <h2 className="text-2xl font-bold">CheckInPro</h2>
+              <h2 className="text-2xl font-bold ml-20">CheckInPro</h2>
               <p className="text-gray-400 mt-2">Enterprise attendance tracking solution</p>
             </div>
             <div className="flex flex-col md:flex-row gap-8">
