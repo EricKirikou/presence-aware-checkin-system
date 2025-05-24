@@ -158,8 +158,8 @@ const LandingPage: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-            <p>&copy; {new Date().getFullYear()} CheckInPro. All rights reserved.</p>
+          <div className="border-t border-white mt-12 pt-8 text-center text-yellow-300">
+            <p>&copy; {new Date().getFullYear()} CheckInPro - A Joseik Solutions Limited Software. All rights reserved.</p>
           </div>
         </div>
       </footer>
