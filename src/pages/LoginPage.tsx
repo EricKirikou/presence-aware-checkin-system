@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -8,25 +7,59 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { useNavigate } from 'react-router-dom';
 import { LogIn } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
 
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  // Form states
+  const [loginForm, setLoginForm] = useState({
+    email: '',
+    password: ''
+  });
+  
+  const [signupForm, setSignupForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+
+  const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
   const [isLoading, setIsLoading] = useState(false);
   const { login, signup } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
+  // Handle form input changes
+  const handleLoginChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setLoginForm(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleSignupChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setSignupForm(prev => ({ ...prev, [id]: value }));
+  };
+
+  // Form submission handlers
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
     try {
-      const success = await login(email, password);
+      const success = await login(loginForm.email, loginForm.password);
       if (success) {
+        toast({
+          title: 'Login successful',
+          description: 'Welcome back!',
+        });
         navigate('/');
       }
+    } catch (error) {
+      toast({
+        title: 'Login failed',
+        description: error instanceof Error ? error.message : 'Invalid credentials',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
@@ -35,34 +68,69 @@ const LoginPage: React.FC = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (password !== confirmPassword) {
-      alert("Passwords don't match");
+    if (signupForm.password !== signupForm.confirmPassword) {
+      toast({
+        title: 'Password mismatch',
+        description: 'The passwords you entered do not match',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    if (signupForm.password.length < 8) {
+      toast({
+        title: 'Weak password',
+        description: 'Password must be at least 8 characters',
+        variant: 'destructive',
+      });
       return;
     }
     
     setIsLoading(true);
     
     try {
-      const success = await signup(email, password, name);
+      const success = await signup(
+        signupForm.email, 
+        signupForm.password, 
+        signupForm.name
+      );
+      
       if (success) {
+        toast({
+          title: 'Account created',
+          description: 'Welcome to CheckInPro!',
+        });
         navigate('/');
       }
+    } catch (error) {
+      toast({
+        title: 'Signup failed',
+        description: error instanceof Error ? error.message : 'Could not create account',
+        variant: 'destructive',
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50">
-      <div className="mb-6">
-        <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+      <div className="mb-6 text-center">
+        <div className="mx-auto h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
           <LogIn className="h-8 w-8 text-primary" />
         </div>
-        <h1 className="text-2xl font-bold text-center mt-2">CheckInPro</h1>
+        <h1 className="text-2xl font-bold">CheckInPro</h1>
+        <p className="text-muted-foreground mt-1">
+          {activeTab === 'login' ? 'Sign in to continue' : 'Create your account'}
+        </p>
       </div>
       
       <Card className="w-full max-w-md">
-        <Tabs defaultValue="login" className="w-full">
+        <Tabs 
+          value={activeTab} 
+          onValueChange={(value) => setActiveTab(value as 'login' | 'signup')}
+          className="w-full"
+        >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -83,8 +151,8 @@ const LoginPage: React.FC = () => {
                     id="email" 
                     type="email" 
                     placeholder="you@example.com" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={loginForm.email}
+                    onChange={handleLoginChange}
                     autoComplete="email"
                     required
                   />
@@ -94,8 +162,8 @@ const LoginPage: React.FC = () => {
                   <Input 
                     id="password" 
                     type="password" 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    value={loginForm.password}
+                    onChange={handleLoginChange}
                     autoComplete="current-password"
                     required
                   />
@@ -119,47 +187,48 @@ const LoginPage: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-name">Full Name</Label>
+                  <Label htmlFor="name">Full Name</Label>
                   <Input 
-                    id="signup-name" 
+                    id="name" 
                     type="text" 
                     placeholder="John Doe" 
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    value={signupForm.name}
+                    onChange={handleSignupChange}
                     autoComplete="name"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
+                  <Label htmlFor="email">Email</Label>
                   <Input 
-                    id="signup-email" 
+                    id="email" 
                     type="email" 
                     placeholder="you@example.com" 
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={signupForm.email}
+                    onChange={handleSignupChange}
                     autoComplete="email"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
+                  <Label htmlFor="password">Password</Label>
                   <Input 
-                    id="signup-password" 
+                    id="password" 
                     type="password" 
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    value={signupForm.password}
+                    onChange={handleSignupChange}
                     autoComplete="new-password"
                     required
+                    minLength={8}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-confirm-password">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
                   <Input 
-                    id="signup-confirm-password" 
+                    id="confirmPassword" 
                     type="password" 
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    value={signupForm.confirmPassword}
+                    onChange={handleSignupChange}
                     autoComplete="new-password"
                     required
                   />
@@ -174,10 +243,6 @@ const LoginPage: React.FC = () => {
           </TabsContent>
         </Tabs>
       </Card>
-      
-      <p className="text-center text-sm text-gray-600 mt-4">
-        Please use valid credentials to login
-      </p>
     </div>
   );
 };

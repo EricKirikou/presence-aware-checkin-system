@@ -1,18 +1,27 @@
-
-import React, { useState, useEffect } from 'react';
-import { useAuth } from './AuthContext';
-import AttendanceForm from './AttendanceForm';
-import AttendanceList from './AttendanceList';
-import CheckoutAttendance from './CheckoutAttendance';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '@/components/AuthContext';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserCheck, CalendarCheck, LogOut, Users } from "lucide-react";
-import UserProfile from './UserProfile';
-import { AttendanceRecord } from '@/types/attendance';
-import ProfileSettings from './ProfileSettings';
-import { saveAttendanceRecord, getAttendanceRecords } from '@/services/supabase';
+import { UserCheck, CalendarCheck, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import AttendanceForm from './AttendanceForm';
+import CheckoutAttendance from './CheckoutAttendance';
+import AttendanceList from './AttendanceList';
+import UserProfile from './UserProfile';
+import ProfileSettings from './ProfileSettings';
+import { AttendanceRecord } from '@/types/attendance';
+import { getAttendanceRecords, saveAttendanceRecord } from '@/lib/api';
+import { GeoLocation } from '@/types/attendance';
+
+interface AttendanceFormData {
+  status: 'present' | 'absent' | 'late';
+  method: 'biometric' | 'manual';
+  location: GeoLocation | null;
+  timestamp: Date;
+  isCheckout?: boolean;
+  faceImage?: string;
+}
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -21,23 +30,25 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
 
-  // Fetch attendance records from the database
+  // Fetch attendance records
   useEffect(() => {
-    const fetchAttendanceRecords = async () => {
+    const loadRecords = async () => {
       if (!user) return;
-      
+
       setIsLoading(true);
       setError(null);
+
       try {
-        // For admin, get all records, for regular user get only their records
-        const records = await getAttendanceRecords(user.role === 'admin' ? undefined : user.id);
+        const records = await getAttendanceRecords(
+          user.role === 'admin' ? undefined : user.id
+        );
         setAttendanceRecords(records);
-      } catch (error: any) {
-        console.error('Error fetching attendance records:', error);
-        setError("Failed to load attendance data. Please try again later.");
+      } catch (err) {
+        console.error('Failed to fetch records:', err);
+        setError('Failed to load attendance data');
         toast({
-          title: "Failed to load attendance data",
-          description: "Please try again later",
+          title: "Error",
+          description: "Could not load attendance records",
           variant: "destructive",
         });
       } finally {
@@ -45,80 +56,79 @@ const Dashboard: React.FC = () => {
       }
     };
 
-    fetchAttendanceRecords();
+    loadRecords();
   }, [user, toast]);
 
-  const handleAttendanceSubmit = async (data: {
-    status: 'present' | 'absent' | 'late';
-    method: 'biometric' | 'manual';
-    location: { lat: number; lng: number; locationName?: string } | null;
-    timestamp: Date;
-    isCheckout?: boolean;
-    faceImage?: string;
-  }) => {
+  // Handle attendance submission
+  const handleSubmit = async (data: AttendanceFormData) => {
     if (!user) return;
-    
+
     try {
       const newRecord: AttendanceRecord = {
         id: Date.now().toString(),
         userId: user.id,
-        userName: user.name,
-        email: user.email,
-        ...data,
-        isCheckout: data.isCheckout || false
+        userName: user.name || 'Unknown',
+        email: user.email || '',
+        status: data.status,
+        method: data.method,
+        location: data.location,
+        timestamp: new Date(data.timestamp),
+        isCheckout: data.isCheckout || false,
+        ...(data.faceImage && { faceImage: data.faceImage })
       };
-      
-      // Save the record to the database
-      const savedRecord = await saveAttendanceRecord(newRecord);
-      
-      // Update local state with the returned record from the database
-      setAttendanceRecords(prev => [savedRecord, ...prev]);
-      
-      toast({
-        title: data.isCheckout ? "Checkout recorded" : "Check-in recorded",
-        description: `Your attendance has been saved successfully`,
-      });
 
-      return savedRecord;
-    } catch (error: any) {
-      console.error('Error saving attendance record:', error);
+      const savedRecord = await saveAttendanceRecord(newRecord);
+      setAttendanceRecords(prev => [...prev, savedRecord]);
+      
       toast({
-        title: "Failed to save attendance",
-        description: error.message || "Please try again",
+        title: "Success",
+        description: data.isCheckout 
+          ? "Checkout recorded successfully" 
+          : "Attendance recorded successfully",
+      });
+    } catch (error) {
+      console.error('Failed to save record:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save attendance record",
         variant: "destructive",
       });
-      throw error; // Re-throw so the form can handle it
     }
   };
 
-  // Check if user is an admin
+  // Filter today's records
+  const todaysRecords = useMemo(() => {
+    if (!user) return [];
+
+    const today = new Date();
+    return attendanceRecords.filter(record => {
+      const recordDate = new Date(record.timestamp);
+      return (
+        record.userId === user.id &&
+        recordDate.getDate() === today.getDate() &&
+        recordDate.getMonth() === today.getMonth() &&
+        recordDate.getFullYear() === today.getFullYear()
+      );
+    });
+  }, [attendanceRecords, user]);
+
+  // Status checks
+  const hasCheckedInToday = todaysRecords.some(r => !r.isCheckout);
+  const hasCheckedOutToday = todaysRecords.some(r => r.isCheckout);
   const isAdmin = user?.role === 'admin';
 
-  // Get today's records for the current user
-  const todaysRecords = attendanceRecords.filter(record => {
-    if (!user) return false;
-    
-    const today = new Date();
-    const recordDate = new Date(record.timestamp);
-    
-    return (
-      record.userId === user.id &&
-      recordDate.getDate() === today.getDate() &&
-      recordDate.getMonth() === today.getMonth() &&
-      recordDate.getFullYear() === today.getFullYear()
-    );
-  });
-
-  // Check if user has checked in today
-  const hasCheckedInToday = todaysRecords.some(record => !record.isCheckout);
-  
-  // Check if user has checked out today
-  const hasCheckedOutToday = todaysRecords.some(record => record.isCheckout);
+  // Stats calculation
+  const stats = useMemo(() => ({
+    present: attendanceRecords.filter(r => r.status === 'present' && !r.isCheckout).length,
+    absent: attendanceRecords.filter(r => r.status === 'absent').length,
+    late: attendanceRecords.filter(r => r.status === 'late').length,
+    checkouts: attendanceRecords.filter(r => r.isCheckout).length,
+  }), [attendanceRecords]);
 
   if (!user) {
     return (
       <div className="max-w-4xl mx-auto p-4">
-        <Alert>
+        <Alert variant="destructive">
           <AlertDescription>
             No user data found. Please log in again.
           </AlertDescription>
@@ -130,81 +140,58 @@ const Dashboard: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto p-4 space-y-6">
       <h1 className="text-2xl font-bold">Welcome, {user.name}</h1>
-      
+
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="md:col-span-1 bg-primary/5">
-          <CardHeader className="pb-2">
-            <div className="flex items-center space-x-2">
-              <UserCheck className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg">Today's Status</CardTitle>
-            </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center space-x-2 pb-2">
+            <UserCheck className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Today's Status</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {hasCheckedInToday ? (hasCheckedOutToday ? 'Completed Day' : 'Checked In') : 'Not Checked In'}
+              {hasCheckedInToday ?
+                (hasCheckedOutToday ? 'Completed' : 'Checked In') :
+                'Not Checked In'}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {new Date().toLocaleDateString(undefined, { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+            <p className="text-sm text-muted-foreground">
+              {new Date().toLocaleDateString(undefined, {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
               })}
             </p>
           </CardContent>
         </Card>
-        
-        <Card className="md:col-span-2 bg-accent/5">
-          <CardHeader className="pb-2">
-            <div className="flex items-center space-x-2">
-              <CalendarCheck className="h-5 w-5 text-accent-foreground" />
-              <CardTitle className="text-lg">Attendance Overview</CardTitle>
-            </div>
+
+        <Card className="md:col-span-2">
+          <CardHeader className="flex flex-row items-center space-x-2 pb-2">
+            <CalendarCheck className="h-5 w-5 text-primary" />
+            <CardTitle className="text-lg">Attendance Overview</CardTitle>
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <div className="text-center py-2">
+              <div className="text-center py-4">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto"></div>
-                <p className="text-sm text-muted-foreground mt-2">Loading attendance data...</p>
               </div>
             ) : error ? (
               <div className="text-center text-red-500 py-2">{error}</div>
-            ) : attendanceRecords.length === 0 ? (
-              <div className="text-center py-2">
-                <p className="text-muted-foreground">No attendance records found</p>
-              </div>
             ) : (
               <div className="flex justify-around text-center">
-                <div>
-                  <div className="text-2xl font-bold">
-                    {attendanceRecords.filter(r => r.status === 'present' && !r.isCheckout).length}
+                {Object.entries(stats).map(([key, value]) => (
+                  <div key={key}>
+                    <div className="text-2xl font-bold">{value}</div>
+                    <p className="text-xs text-muted-foreground capitalize">{key}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">Present</p>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">
-                    {attendanceRecords.filter(r => r.status === 'absent').length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Absent</p>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">
-                    {attendanceRecords.filter(r => r.status === 'late').length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Late</p>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">
-                    {attendanceRecords.filter(r => r.isCheckout).length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">Checkouts</p>
-                </div>
+                ))}
               </div>
             )}
           </CardContent>
         </Card>
       </div>
-      
+
+      {/* Main Tabs */}
       <Tabs defaultValue="check-in" className="w-full">
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="check-in">Check In</TabsTrigger>
@@ -213,27 +200,41 @@ const Dashboard: React.FC = () => {
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
+
         <TabsContent value="check-in" className="mt-6">
-          <AttendanceForm onSubmit={handleAttendanceSubmit} />
+          <AttendanceForm
+            onSubmit={handleSubmit}
+            hasCheckedIn={hasCheckedInToday}
+          />
         </TabsContent>
+
         <TabsContent value="check-out" className="mt-6">
-          <CheckoutAttendance onSubmit={handleAttendanceSubmit} />
+          <CheckoutAttendance
+            onSubmit={handleSubmit}
+            hasCheckedIn={hasCheckedInToday}
+            hasCheckedOut={hasCheckedOutToday}
+          />
         </TabsContent>
+
         {isAdmin && (
           <TabsContent value="history" className="mt-6">
             <div className="mb-4">
-              <div className="flex items-center gap-2 text-primary">
+              <div className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
                 <h2 className="text-xl font-semibold">Attendance History</h2>
               </div>
-              <p className="text-muted-foreground">View and manage all attendance records</p>
             </div>
-            <AttendanceList records={attendanceRecords} isLoading={isLoading} />
+            <AttendanceList
+              records={attendanceRecords}
+              isLoading={isLoading}
+            />
           </TabsContent>
         )}
+
         <TabsContent value="profile" className="mt-6">
           <UserProfile />
         </TabsContent>
+
         <TabsContent value="settings" className="mt-6">
           <ProfileSettings />
         </TabsContent>

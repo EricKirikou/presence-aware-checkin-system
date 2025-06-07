@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -8,77 +7,57 @@ import { useToast } from "@/hooks/use-toast";
 import FaceScanner from './FaceScanner';
 import LocationDeniedAlert from './LocationDeniedAlert';
 import ManualAttendance from './ManualAttendance';
-import { checkLocationPermission, getCurrentLocation } from '@/utils/locationUtils';
+import { checkLocationPermission } from '@/utils/locationUtils';
 import { useAuth } from './AuthContext';
-import { hasCheckedInToday } from '@/services/supabase';
+import { checkTodayAttendance } from '@/lib/api';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Clock } from "lucide-react";
+import { GeoLocation } from '@/types/attendance';
 
 interface AttendanceFormProps {
   onSubmit: (data: {
     status: 'present' | 'absent' | 'late';
     method: 'biometric' | 'manual';
-    location: { lat: number; lng: number; locationName?: string } | null;
+    location: GeoLocation | null;
     timestamp: Date;
     isCheckout?: boolean;
     faceImage?: string;
-  }) => void;
+  }) => Promise<void> | void;
+  hasCheckedIn: boolean;
 }
 
-const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
+const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit, hasCheckedIn }) => {
   const [status, setStatus] = useState<'present' | 'absent' | 'late'>('present');
   const [method, setMethod] = useState<'biometric' | 'manual'>('biometric');
-  const [location, setLocation] = useState<{ lat: number; lng: number; locationName?: string } | null>(null);
+  const [location, setLocation] = useState<GeoLocation | null>(null);
   const [locationDenied, setLocationDenied] = useState(false);
-  const [alreadyCheckedIn, setAlreadyCheckedIn] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
 
-  useEffect(() => {
-    const checkTodayAttendance = async () => {
-      if (user) {
-        setIsLoading(true);
-        setError(null);
-        try {
-          const hasCheckedIn = await hasCheckedInToday(user.id);
-          setAlreadyCheckedIn(hasCheckedIn);
-        } catch (error: any) {
-          console.error("Error checking today's attendance:", error);
-          setError("Could not check attendance status. Please try again.");
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-    
-    checkTodayAttendance();
-  }, [user]);
-
-  const handleFaceScanSuccess = async (faceScanLocation: { lat: number, lng: number, locationName?: string }, faceImage?: string) => {
+  const handleFaceScanSuccess = async (faceScanLocation: GeoLocation, faceImage?: string) => {
     try {
       setLocation(faceScanLocation);
       setError(null);
       await submitAttendance(faceScanLocation, faceImage);
     } catch (error: any) {
       setError(error.message || "Failed to record attendance");
-      // Error is handled in submitAttendance
     }
   };
 
-  const handleManualSubmit = async (submitLocation: { lat: number, lng: number, locationName?: string }) => {
+  const handleManualSubmit = async (submitLocation: GeoLocation) => {
     try {
       setLocation(submitLocation);
       setError(null);
       await submitAttendance(submitLocation);
     } catch (error: any) {
       setError(error.message || "Failed to record attendance");
-      // Error is handled in submitAttendance
     }
   };
 
-  const submitAttendance = async (submitLocation: { lat: number, lng: number, locationName?: string }, faceImage?: string) => {
+  const submitAttendance = async (submitLocation: GeoLocation, faceImage?: string) => {
+    setIsLoading(true);
     try {
       await onSubmit({
         status,
@@ -94,9 +73,6 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
           `You've been marked as ${status} at ${submitLocation.locationName}` :
           `You've been marked as ${status} at ${new Date().toLocaleTimeString()}`,
       });
-      
-      // Update state after successful check-in
-      setAlreadyCheckedIn(true);
     } catch (error: any) {
       console.error("Check-in error:", error);
       toast({
@@ -104,14 +80,15 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
         description: error.message || "An error occurred while checking in",
         variant: "destructive",
       });
-      throw error; // Re-throw so the caller can handle it
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  // Check location permission when component mounts or method changes
-  React.useEffect(() => {
+  useEffect(() => {
     checkLocationPermission(setLocationDenied, toast);
-  }, [method]);
+  }, [method, toast]);
 
   if (isLoading) {
     return (
@@ -120,7 +97,7 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
           <div className="flex justify-center items-center">
             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
           </div>
-          <p className="text-center mt-4 text-muted-foreground">Checking attendance records...</p>
+          <p className="text-center mt-4 text-muted-foreground">Processing your check-in...</p>
         </CardContent>
       </Card>
     );
@@ -134,14 +111,12 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
           <CardDescription>There was a problem checking your attendance</CardDescription>
         </CardHeader>
         <CardContent>
-          <Alert className="bg-red-50 border-red-200">
-            <AlertDescription className="text-red-700">
-              {error}
-            </AlertDescription>
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
           </Alert>
           <div className="mt-4 flex justify-center">
             <button 
-              onClick={() => window.location.reload()}
+              onClick={() => setError(null)}
               className="bg-primary text-white px-4 py-2 rounded hover:bg-primary/80 transition-colors"
             >
               Try Again
@@ -152,7 +127,7 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
     );
   }
 
-  if (alreadyCheckedIn) {
+  if (hasCheckedIn) {
     return (
       <Card className="w-full">
         <CardHeader>
@@ -211,9 +186,9 @@ const AttendanceForm: React.FC<AttendanceFormProps> = ({ onSubmit }) => {
 
           <LocationDeniedAlert locationDenied={locationDenied} />
 
-          {method === 'biometric' ? (
+          {method === 'biometric' && (
             <FaceScanner onSuccess={handleFaceScanSuccess} />
-          ) : null}
+          )}
         </div>
       </CardContent>
       <CardFooter className="text-xs text-muted-foreground">

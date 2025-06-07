@@ -1,43 +1,42 @@
+import { ToastActionElement } from "@/components/ui/toast";
 
-import { ToastActionElement, ToastProps } from "@/components/ui/toast";
-
-// The Google Maps API key - replace with your own in production
-const GOOGLE_API_KEY = "AIzaSyAoceJ4SZmhM6v0vF55VaFaq-FLOdUtRBI"; 
-
+// Check if geolocation permission is granted or prompt user
 export const checkLocationPermission = async (
   setLocationDenied: React.Dispatch<React.SetStateAction<boolean>>,
   toast?: {
-    (props: { title: string; description?: string; action?: ToastActionElement; variant?: "default" | "destructive" }): void;
+    (props: {
+      title: string;
+      description?: string;
+      action?: ToastActionElement;
+      variant?: "default" | "destructive";
+    }): void;
   }
 ): Promise<boolean> => {
   try {
     if (!navigator.geolocation) {
       setLocationDenied(true);
-      if (toast) {
-        toast({
-          title: "Geolocation not supported",
-          description: "Your browser does not support geolocation",
-          variant: "destructive",
-        });
-      }
+      toast?.({
+        title: "Geolocation not supported",
+        description: "Your browser does not support geolocation",
+        variant: "destructive",
+      });
       return false;
     }
 
-    // Check if permission is already granted
-    const permissionStatus = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
-    
-    if (permissionStatus.state === 'denied') {
+    const permissionStatus = await navigator.permissions.query({
+      name: "geolocation" as PermissionName,
+    });
+
+    if (permissionStatus.state === "denied") {
       setLocationDenied(true);
-      if (toast) {
-        toast({
-          title: "Location permission denied",
-          description: "Please enable location services in your browser settings",
-          variant: "destructive",
-        });
-      }
+      toast?.({
+        title: "Location permission denied",
+        description: "Enable location services in your browser settings",
+        variant: "destructive",
+      });
       return false;
     }
-    
+
     setLocationDenied(false);
     return true;
   } catch (error) {
@@ -47,7 +46,12 @@ export const checkLocationPermission = async (
   }
 };
 
-export const getCurrentLocation = (): Promise<{ lat: number, lng: number, locationName?: string }> => {
+// Get current location (lat/lng) + reverse geocoded location name
+export const getCurrentLocation = (): Promise<{
+  lat: number;
+  lng: number;
+  locationName?: string;
+}> => {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
       reject(new Error("Geolocation is not supported by this browser."));
@@ -56,73 +60,61 @@ export const getCurrentLocation = (): Promise<{ lat: number, lng: number, locati
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
         try {
-          const lat = position.coords.latitude;
-          const lng = position.coords.longitude;
-          
-          // Get location name using Google Maps Geocoding API
           const locationName = await getLocationNameFromCoords(lat, lng);
-          
+
           resolve({
             lat,
             lng,
-            locationName
+            locationName,
           });
         } catch (error) {
           console.error("Error getting location name:", error);
-          // Resolve with coordinates only if getting the location name fails
-          resolve({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          });
+          resolve({ lat, lng }); // fallback if name fails
         }
       },
       (error) => {
+        console.error("Geolocation error:", error);
         reject(error);
       }
     );
   });
 };
 
-export const getLocationNameFromCoords = async (lat: number, lng: number): Promise<string | undefined> => {
+// Reverse geocode using OpenStreetMap Nominatim API
+export const getLocationNameFromCoords = async (
+  lat: number,
+  lng: number
+): Promise<string | undefined> => {
   try {
-    const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${GOOGLE_API_KEY}`
-    );
-    
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+
+    const response = await fetch(url, {
+      headers: {
+        "User-Agent": "AttendanceSystem/1.0 (your@email.com)",
+        "Accept-Language": "en",
+      },
+    });
+
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
-    
+
     const data = await response.json();
-    
-    if (data.status !== "OK" || !data.results || data.results.length === 0) {
-      console.error("Geocoding API error:", data.status);
-      return undefined;
-    }
-    
-    // Find the locality (town/city) from the address components
-    for (const result of data.results) {
-      if (result.types.includes("locality") || result.types.includes("administrative_area_level_2")) {
-        // Get the town/city name
-        for (const component of result.address_components) {
-          if (component.types.includes("locality") || 
-              component.types.includes("administrative_area_level_2") ||
-              component.types.includes("administrative_area_level_1")) {
-            return component.long_name;
-          }
-        }
-      }
-    }
-    
-    // If we didn't find a locality, just return the formatted address of the first result
-    if (data.results[0].formatted_address) {
-      return data.results[0].formatted_address.split(",")[0];
-    }
-    
-    return undefined;
+
+    return (
+      data?.address?.city ||
+      data?.address?.town ||
+      data?.address?.village ||
+      data?.address?.county ||
+      data?.display_name?.split(",")[0] ||
+      undefined
+    );
   } catch (error) {
-    console.error("Error getting location name:", error);
+    console.error("Error fetching location from coordinates:", error);
     return undefined;
   }
 };
