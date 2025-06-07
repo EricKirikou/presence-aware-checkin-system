@@ -1,3 +1,6 @@
+import dotenv from 'dotenv';
+dotenv.config(); // 🔥 Load .env FIRST!
+
 import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcrypt';
@@ -18,7 +21,7 @@ app.use(express.json({ limit: '10kb' }));
 // Rate Limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 100,
   message: 'Too many requests from this IP, please try again later'
 });
 app.use('/api/', limiter);
@@ -26,7 +29,7 @@ app.use('/api/', limiter);
 // CORS Configuration
 const corsOptions = {
   origin: [
-    'http://localhost:5173', 
+    'http://localhost:5173',
     'http://127.0.0.1:5173',
     process.env.FRONTEND_URL
   ].filter(Boolean),
@@ -49,7 +52,7 @@ const PASSWORD_MIN_LENGTH = 8;
 // Helper functions
 const generateToken = (user) => {
   return jwt.sign(
-    { 
+    {
       id: user.id,
       email: user.email,
       role: user.role,
@@ -64,7 +67,7 @@ const generateToken = (user) => {
 const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader?.split(' ')[1];
-  
+
   if (!token) return res.status(401).json({ error: 'Authorization token required' });
 
   try {
@@ -72,11 +75,11 @@ const authenticateToken = async (req, res, next) => {
     const db = await getDb();
     const user = await db.collection('users').findOne(
       { id: decoded.id },
-      { projection: { password: 0 } } // Exclude password
+      { projection: { password: 0 } }
     );
-    
+
     if (!user) return res.status(403).json({ error: 'Invalid user' });
-    
+
     req.user = user;
     next();
   } catch (err) {
@@ -90,13 +93,13 @@ const authenticateToken = async (req, res, next) => {
 // Input validation middleware
 const validateRegisterInput = (req, res, next) => {
   const { name, email, password } = req.body;
-  
+
   if (!name || !email || !password) {
     return res.status(400).json({ error: 'Name, email, and password are required' });
   }
 
   if (password.length < PASSWORD_MIN_LENGTH) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters`
     });
   }
@@ -114,12 +117,10 @@ app.post('/api/register', validateRegisterInput, async (req, res) => {
     const { name, email, password, role = 'employee' } = req.body;
     const db = await getDb();
 
-    // Check for existing user
     if (await db.collection('users').findOne({ email })) {
       return res.status(409).json({ error: 'Email already in use' });
     }
 
-    // Create new user
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
     const newUser = {
       id: uuidv4(),
@@ -134,12 +135,11 @@ app.post('/api/register', validateRegisterInput, async (req, res) => {
     };
 
     await db.collection('users').insertOne(newUser);
-    
-    // Generate token
+
     const token = generateToken(newUser);
     const { password: _, ...userWithoutPassword } = newUser;
-    
-    res.status(201).json({ 
+
+    res.status(201).json({
       message: 'User registered successfully',
       token,
       user: userWithoutPassword
@@ -153,14 +153,14 @@ app.post('/api/register', validateRegisterInput, async (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
     if (!email || !password) {
       return res.status(400).json({ error: 'Email and password are required' });
     }
 
     const db = await getDb();
     const user = await db.collection('users').findOne({ email: email.toLowerCase() });
-    
+
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
@@ -172,8 +172,8 @@ app.post('/api/login', async (req, res) => {
 
     const token = generateToken(user);
     const { password: _, ...userWithoutPassword } = user;
-    
-    res.json({ 
+
+    res.json({
       message: 'Login successful',
       token,
       user: userWithoutPassword
@@ -184,43 +184,49 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// Add the password update endpoint
 app.post('/api/update-password', authenticateToken, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ error: 'Current and new password are required' });
+
+    if (!newPassword) {
+      return res.status(400).json({ error: 'New password is required' });
     }
 
     if (newPassword.length < PASSWORD_MIN_LENGTH) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters`
       });
     }
 
     const db = await getDb();
     const user = await db.collection('users').findOne({ id: req.user.id });
-    
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    const passwordMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!passwordMatch) {
-      return res.status(401).json({ error: 'Current password is incorrect' });
+    // Only require current password if NOT first login
+    if (!user.isFirstLogin) {
+      if (!currentPassword) {
+        return res.status(400).json({ error: 'Current password is required' });
+      }
+
+      const passwordMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!passwordMatch) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+      }
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
-    
+
     await db.collection('users').updateOne(
-      { id: req.user.id },
-      { 
-        $set: { 
+      { id: user.id },
+      {
+        $set: {
           password: hashedPassword,
           isFirstLogin: false,
           updatedAt: new Date()
-        } 
+        }
       }
     );
 
@@ -231,7 +237,6 @@ app.post('/api/update-password', authenticateToken, async (req, res) => {
   }
 });
 
-// Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'healthy', timestamp: new Date() });
 });
