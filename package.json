@@ -5,12 +5,13 @@
   "type": "module",
 "scripts": {
   "dev": "concurrently \"npm run client\" \"npm run server\"",
-  "client": "cd frontend && npm run dev",
-  "server": "cd mongo-api && npm run dev",
-  "build": "cd frontend && npm run build",
+  "client": "cd frontend && npm start",
+  "server": "cd mongo-api && npm start",
+  "build": "cd frontend && npm start",
   "build:dev": "cd frontend && vite build --mode development",
   "lint": "cd frontend && npm run lint",
-  "preview": "cd frontend && npm run preview"
+  "preview": "cd frontend && npm run preview",
+  "start": "vite"
 },
 
   "dependencies": {
