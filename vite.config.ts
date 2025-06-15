@@ -9,4 +9,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'), // 👈 Alias '@' points to '/src'
     },
   },
+  build: {
+    target: 'esnext',
+    rollupOptions: {
+      external: [],
+    },
+  },
 });
