@@ -1,24 +1,19 @@
-import { ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import LandingPage from "@/components/LandingPage"; // Import LandingPage
+import LandingPage from "@/components/LandingPage";
 import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
 import NotFound from "./pages/NotFound";
-import Dashboard from "@/components/Dashboard"; // Assuming you have a Dashboard page
+import Dashboard from "@/components/Dashboard";
 import { AuthProvider, useAuth } from "./components/AuthContext";
 
 const queryClient = new QueryClient();
 
-// Protected route wrapper
-const ProtectedRoute = ({ children }: { children: ReactNode }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
   return <>{children}</>;
 };
 
@@ -26,13 +21,12 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
-      <BrowserRouter>
-        <AuthProvider>
+      <AuthProvider>
+        <BrowserRouter>
           <Routes>
-            {/* LandingPage as the main page */}
             <Route path="/" element={<LandingPage />} />
-
-            {/* Protected dashboard route */}
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
             <Route
               path="/dashboard"
               element={
@@ -41,15 +35,12 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-
-            <Route path="/login" element={<LoginPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </AuthProvider>
-      </BrowserRouter>
+        </BrowserRouter>
+      </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
-
 
 export default App;

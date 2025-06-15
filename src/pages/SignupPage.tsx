@@ -5,14 +5,12 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate, Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/components/AuthContext';
 
-const LoginPage: React.FC = () => {
-  const [form, setForm] = useState({ email: '', password: '' });
+const SignupPage: React.FC = () => {
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -22,40 +20,42 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/login`, { // ✅ Fixed endpoint
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: form.email,      // ✅ Corrected
+          password: form.password, // ✅ Corrected
+        // 🔥 Do NOT include username — backend will generate
+      }),
+    });
 
-      const data = await res.json();
+    const data = await res.json();
+    console.log(data);
+  } catch (error) {
+    console.error('Signup error:', error);
+  }
+};
 
-      if (!res.ok) throw new Error(data.error || 'Login failed');
 
-      await login(data.user.email, form.password); // Adjust as per your login logic
-      toast({ title: 'Login successful', description: 'Welcome back!' });
-      navigate('/dashboard');
-    } catch (error) {
-      toast({
-        title: 'Login failed',
-        description: error instanceof Error ? error.message : 'Unknown error',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Sign In</CardTitle>
-          <CardDescription>Enter your credentials to access your account</CardDescription>
+          <CardTitle>Sign Up</CardTitle>
+          <CardDescription>Create your new account</CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="name">Name</Label>
+              <Input id="name" type="text" value={form.name} onChange={handleChange} required />
+            </div>
             <div>
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" value={form.email} onChange={handleChange} required />
@@ -67,10 +67,10 @@ const LoginPage: React.FC = () => {
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? 'Signing up...' : 'Sign Up'}
             </Button>
             <p className="text-center text-sm">
-              Don't have an account? <Link to="/signup" className="underline text-primary">Sign Up</Link>
+              Already have an account? <Link to="/login" className="underline text-primary">Log In</Link>
             </p>
           </CardFooter>
         </form>
@@ -79,4 +79,4 @@ const LoginPage: React.FC = () => {
   );
 };
 
-export default LoginPage;
+export default SignupPage;

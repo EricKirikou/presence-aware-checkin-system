@@ -1,60 +1,138 @@
-# Welcome to your Check-in project
+# 🕒 Attendance System
 
-## Project info
+A fullstack employee attendance management system built with:
 
-## How can I edit this code?
+- **Frontend:** Vite + React + TypeScript + Tailwind CSS + ShadCN-UI
+- **Backend:** Node.js + Express.js + MongoDB (via MongoDB Atlas)
+- **Authentication:** JWT-based login & password management
 
-There are several ways of editing your application.
+---
 
-**Use your preferred IDE**
+## 📁 Project Structure
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+attendance-system/
+│
+├── mongo-api/ # Backend (Node.js + Express)
+│ ├── server.js
+│ ├── db.js
+│ ├── .env
+│ └── ...
+│
+├── frontend/ # Frontend (React + Vite)
+│ ├── index.html
+│ ├── src/
+│ ├── vite.config.ts
+│ └── ...
+│
+├── .gitignore
+├── package.json
+└── README.md
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+yaml
+Copy
+Edit
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 🚀 Getting Started
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### 1. Clone the Repo
 
-# Step 3: Install the necessary dependencies.
-npm i
+```bash
+git clone https://github.com/your-username/attendance-system.git
+cd attendance-system
+2. Install Dependencies
+bash
+Copy
+Edit
+npm install
+This installs dependencies for both client and server if concurrently is set in root.
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+🔐 Environment Variables
+Create a .env file in the mongo-api/ folder:
+
+env
+Copy
+Edit
+# mongo-api/.env
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/attendance-db
+JWT_SECRET=your_jwt_secret_key
+JWT_EXPIRES_IN=24h
+FRONTEND_URL=http://localhost:5173
+PORT=3001
+NODE_ENV=development
+🏃‍♂️ Run the App
+bash
+Copy
+Edit
 npm run dev
-```
+This runs:
 
-**Edit a file directly in GitHub**
+React client on http://localhost:5173
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Express server on http://localhost:3001
 
-**Use GitHub Codespaces**
+You can also run separately from frontend/ and mongo-api/ folders using npm run dev.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+🔗 API Endpoints
+✅ POST /api/register
+Registers a new user. Fields: name, email, password, role?
 
-## What technologies are used for this project?
+✅ POST /api/login
+Logs in a user and returns a JWT.
 
-This project is built with:
+✅ POST /api/update-password
+Updates user password. Requires Authorization header: Bearer <token>
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+✅ GET /api/health
+Health check endpoint.
+
+🧪 Testing the API
+Use Postman or Thunder Client:
+
+Base URL: http://localhost:3001/api
+
+Add Authorization: Bearer <your_jwt_token> to protected routes.
+
+🛡 Security Features
+JWT-based authentication
+
+Helmet for HTTP headers
+
+Rate limiting (100 req / 15 mins)
+
+MongoDB sanitization
+
+CORS (limited to localhost frontend)
+
+🧰 Technologies Used
+Frontend	Backend	Utilities
+React + TypeScript	Node + Express	UUID
+Vite	MongoDB + Mongoose	bcryptjs
+Tailwind CSS	dotenv	jsonwebtoken
+shadcn/ui	nodemon	express-rate-limit
+Axios	cors	helmet + sanitize
+
+✨ Features To Add
+ Attendance marking
+
+ Admin dashboard
+
+ Role-based access
+
+ CSV reports
+
+ Forgot password
+
+ User profile management
+
+📜 License
+This project is open-source and available under the MIT License.
+
+💬 Author
+Built by @Kayrico 🚀
 
 
-Yes, you can!
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+

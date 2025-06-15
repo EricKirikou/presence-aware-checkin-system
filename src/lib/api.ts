@@ -1,20 +1,21 @@
-// src/lib/api.ts
+const API_BASE = import.meta.env.VITE_API_URL;
+
 export const getAttendanceRecords = async (p0: string | undefined) => {
-  const response = await fetch('/api/attendance');
+  const response = await fetch(`${API_BASE}/attendance`);
   return await response.json();
 };
 
 export const saveAttendanceRecord = async (record: any) => {
-  const response = await fetch('/api/attendance', {
+  const response = await fetch(`${API_BASE}/attendance`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(record)
+    body: JSON.stringify(record),
   });
   return await response.json();
 };
 
 export const hasCheckedInToday = async (userId: string): Promise<boolean> => {
-  const response = await fetch(`/api/attendance/today/${userId}`);
+  const response = await fetch(`${API_BASE}/attendance/today/${userId}`);
   if (!response.ok) {
     throw new Error('Failed to check attendance status');
   }
@@ -23,7 +24,7 @@ export const hasCheckedInToday = async (userId: string): Promise<boolean> => {
 };
 
 export const getUserByEmail = async (email: string) => {
-  const response = await fetch(`/api/users?email=${encodeURIComponent(email)}`);
+  const response = await fetch(`${API_BASE}/users?email=${encodeURIComponent(email)}`);
   if (!response.ok) {
     throw new Error('Failed to fetch user');
   }
@@ -39,7 +40,7 @@ export interface User {
 }
 
 export const saveUser = async (userData: Omit<User, 'id'>): Promise<User> => {
-  const response = await fetch('/api/users', {
+  const response = await fetch(`${API_BASE}/users`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -57,8 +58,8 @@ export const saveUser = async (userData: Omit<User, 'id'>): Promise<User> => {
 
 export const checkTodayAttendance = async (userId: string): Promise<boolean> => {
   try {
-    const response = await fetch(`/api/attendance/today?userId=${userId}`);
-    
+    const response = await fetch(`${API_BASE}/attendance/today?userId=${userId}`);
+
     if (!response.ok) {
       throw new Error('Failed to check attendance status');
     }
@@ -69,4 +70,22 @@ export const checkTodayAttendance = async (userId: string): Promise<boolean> => 
     console.error('Error checking attendance:', error);
     throw new Error('Could not verify attendance status');
   }
+};
+
+// ✅ UPDATED FUNCTION
+export const updateUserPassword = async (
+  payload: { newPassword: string } | { currentPassword: string; newPassword: string }
+) => {
+  const res = await fetch(`${API_BASE}/update-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    throw new Error(error.message || 'Failed to update password');
+  }
+
+  return res.json();
 };
