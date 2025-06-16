@@ -29,61 +29,41 @@ const LoginPage: React.FC = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  // In your frontend login function
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  // Add validation
+  if (!form.email || !form.password) {
+    toast.error('Both email and password are required');
+    return;
+  }
+
+  try {
+    const response = await fetch('https://attendane-api.onrender.com/api/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: form.email.toLowerCase().trim(), // Normalize email
+        password: form.password
+      }),
+      credentials: 'include'
+    });
+
+    const data = await response.json();
     
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/login`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify(form),
-        credentials: 'include',
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        const errorData = data as ApiError;
-        throw new Error(
-          errorData.message || 
-          errorData.errors?.email?.join(', ') || 
-          errorData.errors?.password?.join(', ') || 
-          'Login failed'
-        );
-      }
-
-      // Store authentication data
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-      }
-      if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
-      }
-
-      // Update auth context
-      await login(data.user?.email || form.email, form.password);
-      
-      toast({
-        title: 'Login successful',
-        description: 'Welcome back!',
-      });
-      
-      navigate('/dashboard');
-    } catch (error) {
-      console.error('Login error:', error);
-      toast({
-        title: 'Login failed',
-        description: error instanceof Error ? error.message : 'An unexpected error occurred',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
+    if (!response.ok) {
+      throw new Error(data.message || 'Login failed');
     }
-  };
+    
+    // Handle successful login
+  } catch (error) {
+    console.error('Login error details:', error);
+    toast.error(error.message || 'Login failed');
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
