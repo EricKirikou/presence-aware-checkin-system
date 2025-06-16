@@ -20,6 +20,7 @@
     "vite.config.ts",
     "mongo-api/**/*.ts",
     "mongo-api/**/*.js"
+    "https://attendane-api.onrender.com"
   ],
   "exclude": [
     "node_modules",

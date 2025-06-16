@@ -10,17 +10,16 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors()); // Allow all origins (for local dev)
+// Configure CORS properly
+const corsOptions = {
+  origin: 'http://localhost:5173', // Your frontend origin
+  credentials: true, // Allow credentials
+  methods: ['GET', 'POST', 'PUT', 'DELETE'], // Allowed methods
+  allowedHeaders: ['Content-Type', 'Authorization'] // Allowed headers
+};
+
+app.use(cors(corsOptions));
 app.use(express.json()); // Parse JSON bodies
-
-// Allow requests from your Vercel frontend
-app.use(cors({
-  origin: 'https://attendance-six-azure.vercel.app',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type'],
-  credentials: true  // Corrected this line
-}));
-
 
 app.use('/api', authRoutes);     // /api/register, /api/login
 app.use('/api', healthRoutes);   // /api/health
