@@ -39,7 +39,7 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/login`, { // Adjust this if backend path is /api/auth/login
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/login`, { // ✅ matches your backend
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -55,6 +55,7 @@ const LoginPage: React.FC = () => {
         throw new Error(data.message || 'Login failed');
       }
 
+      // Pass user + token to context login function
       login(data.user, data.token);
 
       toast({
