@@ -22,15 +22,14 @@ const SignupPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/register`, { // ✅ Corrected path
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: form.email,      
-          password: form.password, 
-          // Name is NOT sent because backend generates username automatically
+          email: form.email.trim().toLowerCase(),
+          password: form.password,
         }),
         credentials: 'include',
       });
@@ -39,22 +38,36 @@ const SignupPage: React.FC = () => {
       console.log('Signup response:', data);
 
       if (!res.ok) {
-        throw new Error(data.error || 'Signup failed');
+        if (data.error === 'User already exists') {
+          toast({
+            variant: 'destructive',
+            title: 'Signup Failed',
+            description: 'This email is already registered. Try logging in.',
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: 'Signup Failed',
+            description: data.error || 'Something went wrong. Please try again.',
+          });
+        }
+        return;
       }
 
       toast({
         variant: 'default',
-        title: 'Success',
-        description: 'Account created successfully!',
+        title: 'Account Created 🎉',
+        description: 'Your account was created successfully! You can now log in.',
       });
 
+      // Redirect to login page
       navigate('/login');
     } catch (error: unknown) {
       const err = error as Error;
       toast({
         variant: 'destructive',
-        title: 'Signup Failed',
-        description: err.message || 'Something went wrong.',
+        title: 'Network Error',
+        description: err.message || 'Unable to reach the server.',
       });
     } finally {
       setIsLoading(false);
@@ -78,6 +91,8 @@ const SignupPage: React.FC = () => {
                 value={form.name} 
                 onChange={handleChange} 
                 required 
+                placeholder="Your full name" 
+                disabled={isLoading}
               />
             </div>
             <div>
@@ -88,6 +103,8 @@ const SignupPage: React.FC = () => {
                 value={form.email} 
                 onChange={handleChange} 
                 required 
+                placeholder="you@example.com" 
+                disabled={isLoading}
               />
             </div>
             <div>
@@ -98,6 +115,8 @@ const SignupPage: React.FC = () => {
                 value={form.password} 
                 onChange={handleChange} 
                 required 
+                placeholder="••••••••" 
+                disabled={isLoading}
               />
             </div>
           </CardContent>
@@ -105,7 +124,7 @@ const SignupPage: React.FC = () => {
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? 'Signing up...' : 'Sign Up'}
             </Button>
-            <p className="text-center text-sm">
+            <p className="text-center text-sm text-muted-foreground">
               Already have an account?{' '}
               <Link to="/login" className="underline text-primary">Log In</Link>
             </p>
