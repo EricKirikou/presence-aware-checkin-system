@@ -22,26 +22,44 @@ const SignupPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/register`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/register`, { // ✅ Corrected path
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          email: form.email,      // ✅ Corrected
-          password: form.password, // ✅ Corrected
-        // 🔥 Do NOT include username — backend will generate
-      }),
-    });
+          email: form.email,      
+          password: form.password, 
+          // Name is NOT sent because backend generates username automatically
+        }),
+        credentials: 'include',
+      });
 
-    const data = await res.json();
-    console.log(data);
-  } catch (error) {
-    console.error('Signup error:', error);
-  }
-};
+      const data = await res.json();
+      console.log('Signup response:', data);
 
+      if (!res.ok) {
+        throw new Error(data.error || 'Signup failed');
+      }
 
+      toast({
+        variant: 'default',
+        title: 'Success',
+        description: 'Account created successfully!',
+      });
+
+      navigate('/login');
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast({
+        variant: 'destructive',
+        title: 'Signup Failed',
+        description: err.message || 'Something went wrong.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -54,15 +72,33 @@ const SignupPage: React.FC = () => {
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="name">Name</Label>
-              <Input id="name" type="text" value={form.name} onChange={handleChange} required />
+              <Input 
+                id="name" 
+                type="text" 
+                value={form.name} 
+                onChange={handleChange} 
+                required 
+              />
             </div>
             <div>
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={form.email} onChange={handleChange} required />
+              <Input 
+                id="email" 
+                type="email" 
+                value={form.email} 
+                onChange={handleChange} 
+                required 
+              />
             </div>
             <div>
               <Label htmlFor="password">Password</Label>
-              <Input id="password" type="password" value={form.password} onChange={handleChange} required />
+              <Input 
+                id="password" 
+                type="password" 
+                value={form.password} 
+                onChange={handleChange} 
+                required 
+              />
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
@@ -70,7 +106,8 @@ const SignupPage: React.FC = () => {
               {isLoading ? 'Signing up...' : 'Sign Up'}
             </Button>
             <p className="text-center text-sm">
-              Already have an account? <Link to="/login" className="underline text-primary">Log In</Link>
+              Already have an account?{' '}
+              <Link to="/login" className="underline text-primary">Log In</Link>
             </p>
           </CardFooter>
         </form>
