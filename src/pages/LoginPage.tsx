@@ -7,6 +7,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthContext';
 
+const { login } = useAuth();
+
 interface LoginForm {
   email: string;
   password: string;
@@ -29,41 +31,64 @@ const LoginPage: React.FC = () => {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // In your frontend login function
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  
-  // Add validation
-  if (!form.email || !form.password) {
-    toast.error('Both email and password are required');
-    return;
-  }
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
-  try {
-    const response = await fetch('https://attendane-api.onrender.com/api/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: form.email.toLowerCase().trim(), // Normalize email
-        password: form.password
-      }),
-      credentials: 'include'
-    });
-
-    const data = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(data.message || 'Login failed');
+    // Simple form validation
+    if (!form.email || !form.password) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Both email and password are required.',
+      });
+      return;
     }
-    
-    // Handle successful login
-  } catch (error) {
-    console.error('Login error details:', error);
-    toast.error(error.message || 'Login failed');
-  }
-};
+
+    setIsLoading(true);
+
+    try {
+      const response = await fetch('https://attendane-api.onrender.com/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: form.email.toLowerCase().trim(),
+          password: form.password,
+        }),
+        credentials: 'include',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+
+      // Handle successful login (call context login)
+      login(data.user, data.token); // pass user + token to context
+
+      toast({
+        variant: 'default',
+        title: 'Success',
+        description: 'Logged in successfully!',
+      });
+
+      navigate('/dashboard'); // Redirect to dashboard or any protected route
+
+    } catch (error: unknown) {
+      const err = error as Error;
+      console.error('Login error details:', err);
+
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: err.message || 'Something went wrong.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -76,7 +101,7 @@ const handleSubmit = async (e) => {
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="email">Email</Label>
-              <Input 
+              <Input
                 id="email"
                 name="email"
                 type="email"
@@ -90,7 +115,7 @@ const handleSubmit = async (e) => {
             </div>
             <div>
               <Label htmlFor="password">Password</Label>
-              <Input 
+              <Input
                 id="password"
                 name="password"
                 type="password"
@@ -104,9 +129,9 @@ const handleSubmit = async (e) => {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button 
-              type="submit" 
-              className="w-full" 
+            <Button
+              type="submit"
+              className="w-full"
               disabled={isLoading}
             >
               {isLoading ? (
@@ -121,8 +146,8 @@ const handleSubmit = async (e) => {
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               Don't have an account?{' '}
-              <Link 
-                to="/signup" 
+              <Link
+                to="/signup"
                 className="font-medium text-primary hover:underline"
                 aria-disabled={isLoading}
               >
