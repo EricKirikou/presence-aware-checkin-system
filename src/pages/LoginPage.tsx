@@ -25,7 +25,7 @@ const LoginPage: React.FC = () => {
     if (!form.email || !form.password) {
       toast({
         variant: 'destructive',
-        title: 'Error',
+        title: 'Validation Error',
         description: 'Both email and password are required.',
       });
       return;
@@ -47,6 +47,7 @@ const LoginPage: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
+        // Show backend error (like 'Invalid credentials' or 'Password too short')
         throw new Error(data.error || 'Login failed');
       }
 
