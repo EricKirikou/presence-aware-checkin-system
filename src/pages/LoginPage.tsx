@@ -7,16 +7,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/AuthContext';
 
-const { login } = useAuth();
-
 interface LoginForm {
   email: string;
   password: string;
-}
-
-interface ApiError {
-  message: string;
-  errors?: Record<string, string[]>;
 }
 
 const LoginPage: React.FC = () => {
@@ -34,7 +27,6 @@ const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Simple form validation
     if (!form.email || !form.password) {
       toast({
         variant: 'destructive',
@@ -47,11 +39,9 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('https://attendane-api.onrender.com/api/login', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/auth/login`, { // Adjust this if backend path is /api/auth/login
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: form.email.toLowerCase().trim(),
           password: form.password,
@@ -65,8 +55,7 @@ const LoginPage: React.FC = () => {
         throw new Error(data.message || 'Login failed');
       }
 
-      // Handle successful login (call context login)
-      login(data.user, data.token); // pass user + token to context
+      login(data.user, data.token);
 
       toast({
         variant: 'default',
@@ -74,7 +63,7 @@ const LoginPage: React.FC = () => {
         description: 'Logged in successfully!',
       });
 
-      navigate('/dashboard'); // Redirect to dashboard or any protected route
+      navigate('/dashboard');
 
     } catch (error: unknown) {
       const err = error as Error;
