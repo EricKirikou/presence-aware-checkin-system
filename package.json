@@ -6,7 +6,8 @@
   "scripts": {
     "start": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "rm -rf node_modules/.vite/ && rm -rf node_modules/rollup/dist/native.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
