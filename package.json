@@ -7,7 +7,7 @@
     "start": "vite",
     "build": "rm -rf node_modules && npm install --force && vite build",
     "preview": "vite preview",
-    "postinstall": "rm -rf node_modules/.vite/"
+    "postinstall": "rimraf node_modules/.vite"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -71,6 +71,7 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
+    "vite": "^5.4.19",
     "vite-plugin-node-polyfills": "^0.23.0",
     "zod": "^3.23.8"
   },
@@ -102,7 +103,6 @@
     "rollup": "^4.44.0",
     "tailwindcss": "^3.4.11",
     "typescript": "^5.5.3",
-    "typescript-eslint": "^8.32.1",
-    "vite": "^7.0.0"
+    "typescript-eslint": "^8.32.1"
   }
 }

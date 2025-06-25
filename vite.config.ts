@@ -3,7 +3,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 
-globalThis.crypto = webcrypto as Crypto;
+// Safe assignment: only if not already defined
+if (typeof globalThis.crypto === 'undefined') {
+  (globalThis as any).crypto = webcrypto;
+}
 
 export default defineConfig({
   base: "/",
