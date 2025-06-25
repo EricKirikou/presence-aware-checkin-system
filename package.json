@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "start": "vite",
-    "build": "vite build",
+    "build": "rm -rf node_modules && npm install --force && vite build",
     "preview": "vite preview",
-    "postinstall": "rm -rf node_modules/.vite/ && rm -rf node_modules/rollup/dist/native.js"
+    "postinstall": "rm -rf node_modules/.vite/"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -86,7 +86,7 @@
     "@types/node": "^22.5.5",
     "@types/react": "^18.3.22",
     "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react": "^4.5.2",
+    "@vitejs/plugin-react": "^4.6.0",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
     "concurrently": "^9.1.2",
@@ -103,6 +103,6 @@
     "tailwindcss": "^3.4.11",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.32.1",
-    "vite": "^5.4.1"
+    "vite": "^7.0.0"
   }
 }
