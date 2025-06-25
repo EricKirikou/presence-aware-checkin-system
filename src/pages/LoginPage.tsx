@@ -73,7 +73,10 @@ const LoginPage: React.FC = () => {
     try {
       const response = await fetch('https://attendane-api.onrender.com/api/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*' 
+        },
         body: JSON.stringify({
           email: form.email.toLowerCase().trim(),
           password: form.password,
@@ -116,18 +119,15 @@ const LoginPage: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-black overflow-hidden relative p-4">
       {/* Cyberpunk grid background */}
-      <div className="absolute inset-0 overflow-hidden opacity-20">
-        <div 
-          className="absolute inset-0 bg-grid-pattern"
-          style={{
-            backgroundSize: '40px 40px',
-            transform: `translate(${mousePos.x * 0.02}px, ${mousePos.y * 0.02}px)`
-          }}
-        />
-      </div>
+      <div 
+        className="absolute inset-0 overflow-hidden opacity-20 cyberpunk-grid"
+        style={{
+          transform: `translate(${mousePos.x * 0.02}px, ${mousePos.y * 0.02}px)`
+        }}
+      />
 
       {/* Animated scanlines */}
-      <div className="absolute inset-0 bg-scanlines opacity-10 pointer-events-none" />
+      <div className="absolute inset-0 scanlines opacity-10 pointer-events-none" />
 
       {/* Neon glow elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -156,13 +156,31 @@ const LoginPage: React.FC = () => {
         ))}
       </div>
 
+      {/* Digital rain effect */}
+      <div className="absolute inset-0 overflow-hidden opacity-5 pointer-events-none">
+        {[...Array(50)].map((_, i) => (
+          <span 
+            key={i} 
+            className="absolute text-green-400 font-mono text-xs"
+            style={{
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              animation: `fall ${Math.random() * 5 + 3}s linear infinite`,
+              animationDelay: `${Math.random() * 5}s`
+            }}
+          >
+            {String.fromCharCode(0x30A0 + Math.random() * 96)}
+          </span>
+        ))}
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className="w-full max-w-md z-10"
       >
-        <Card className="bg-black/70 backdrop-blur-sm border border-cyan-500/20 rounded-none shadow-2xl shadow-cyan-500/20 relative overflow-hidden">
+        <Card className="cyberpunk-card">
           {/* Cyberpunk corner accents */}
           <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-cyan-400" />
           <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-cyan-400" />
@@ -184,11 +202,11 @@ const LoginPage: React.FC = () => {
               whileHover={{ scale: 1.01 }}
               transition={{ type: 'spring', stiffness: 400, damping: 10 }}
             >
-              <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent font-mono tracking-wider">
+              <CardTitle className="text-3xl font-bold text-center bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent font-orbitron tracking-wider text-glow-lg">
                 SYSTEM ACCESS
               </CardTitle>
             </motion.div>
-            <CardDescription className="text-center text-cyan-300/70 font-mono text-xs tracking-wider">
+            <CardDescription className="text-center text-cyan-300/70 font-share-tech-mono text-xs tracking-wider">
               ENTER CREDENTIALS TO PROCEED
             </CardDescription>
           </CardHeader>
@@ -196,8 +214,9 @@ const LoginPage: React.FC = () => {
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-6">
               <div className="space-y-3">
-                <Label htmlFor="email" className="text-sm font-medium text-cyan-300/80 font-mono tracking-wider">
+                <Label htmlFor="email" className="text-sm font-medium text-cyan-300/80 font-share-tech-mono tracking-wider relative">
                   USER IDENTIFIER
+                  <span className="ml-1 animate-pulse">_</span>
                 </Label>
                 <motion.div 
                   whileHover={{ scale: 1.01 }}
@@ -212,7 +231,7 @@ const LoginPage: React.FC = () => {
                     onChange={handleChange}
                     disabled={isLoading}
                     placeholder="user@domain.com"
-                    className={`${errors.email ? 'border-red-500 focus-visible:ring-red-500' : 'border-cyan-500/30 focus-visible:ring-cyan-500'} bg-black/50 text-cyan-100 placeholder-cyan-500/50 py-3 h-12 rounded-none border font-mono tracking-wider transition-all ${activeInput === 'email' ? 'shadow-lg shadow-cyan-500/20' : ''}`}
+                    className={`${errors.email ? 'border-red-500 focus-visible:ring-red-500' : 'border-cyan-500/30 focus-visible:ring-cyan-500'} cyberpunk-input ${activeInput === 'email' ? 'shadow-lg shadow-cyan-500/20' : ''}`}
                   />
                 </motion.div>
                 <AnimatePresence>
@@ -222,7 +241,7 @@ const LoginPage: React.FC = () => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="text-sm text-red-400 mt-1 flex items-center gap-1 font-mono"
+                      className="text-sm text-red-400 mt-1 flex items-center gap-1 font-share-tech-mono"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -235,13 +254,14 @@ const LoginPage: React.FC = () => {
 
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="password" className="text-sm font-medium text-cyan-300/80 font-mono tracking-wider">
+                  <Label htmlFor="password" className="text-sm font-medium text-cyan-300/80 font-share-tech-mono tracking-wider relative">
                     SECURITY KEY
+                    <span className="ml-1 animate-pulse">_</span>
                   </Label>
                   <motion.div whileHover={{ scale: 1.05 }}>
                     <Link
                       to="/forgot-password"
-                      className="text-xs font-medium text-cyan-400 hover:underline font-mono tracking-wider"
+                      className="text-xs font-medium text-cyan-400 hover:underline font-share-tech-mono tracking-wider"
                     >
                       KEY RECOVERY
                     </Link>
@@ -256,11 +276,11 @@ const LoginPage: React.FC = () => {
                     id="password"
                     name="password"
                     type="password"
-                    value={form.password}
+                    value={form.password.split('').map(() => '•').join('')}
                     onChange={handleChange}
                     disabled={isLoading}
                     placeholder="••••••••"
-                    className={`${errors.password ? 'border-red-500 focus-visible:ring-red-500' : 'border-cyan-500/30 focus-visible:ring-cyan-500'} bg-black/50 text-cyan-100 placeholder-cyan-500/50 py-3 h-12 rounded-none border font-mono tracking-wider transition-all ${activeInput === 'password' ? 'shadow-lg shadow-cyan-500/20' : ''}`}
+                    className={`${errors.password ? 'border-red-500 focus-visible:ring-red-500' : 'border-cyan-500/30 focus-visible:ring-cyan-500'} cyberpunk-input tracking-widest ${activeInput === 'password' ? 'shadow-lg shadow-cyan-500/20' : ''}`}
                   />
                 </motion.div>
                 <AnimatePresence>
@@ -270,7 +290,7 @@ const LoginPage: React.FC = () => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="text-sm text-red-400 mt-1 flex items-center gap-1 font-mono"
+                      className="text-sm text-red-400 mt-1 flex items-center gap-1 font-share-tech-mono"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -279,6 +299,38 @@ const LoginPage: React.FC = () => {
                     </motion.p>
                   )}
                 </AnimatePresence>
+              </div>
+
+              {/* Fingerprint scanner alternative */}
+              <div className="pt-4 flex justify-center">
+                <motion.div 
+                  className="fingerprint-scanner"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-cyan-400"
+                  >
+                    <path d="M2 12C2 6.5 6.5 2 12 2a10 10 0 0 1 8 4"></path>
+                    <path d="M5 19.5C5.5 18 6 15 6 12c0-.7.12-1.37.34-2"></path>
+                    <path d="M17.29 21.02c.12-.6.43-2.3.5-3.02"></path>
+                    <path d="M12 10a2 2 0 0 0-2 2c0 1.02-.1 2.51-.26 4"></path>
+                    <path d="M8.65 22c.21-.66.45-1.32.57-2"></path>
+                    <path d="M14 13.12c0 2.38 0 6.38-1 8.88"></path>
+                    <path d="M2 16h.01"></path>
+                    <path d="M21.8 16c.2-2 .131-5.354 0-6"></path>
+                    <path d="M9 6.8a6 6 0 0 1 9 5.2c0 .47 0 1.17-.02 2"></path>
+                  </svg>
+                </motion.div>
               </div>
             </CardContent>
 
@@ -289,13 +341,13 @@ const LoginPage: React.FC = () => {
               >
                 <Button
                   type="submit"
-                  className="w-full h-12 bg-gradient-to-r from-cyan-600/90 to-purple-600/90 hover:from-cyan-500/90 hover:to-purple-500/90 text-white rounded-none shadow-lg font-mono tracking-wider relative overflow-hidden group border border-cyan-400/20"
+                  className="w-full h-12 cyberpunk-btn"
                   disabled={isLoading}
                 >
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      AUTHENTICATING...
+                      <span className="relative z-10">AUTHENTICATING...</span>
                     </>
                   ) : (
                     <>
@@ -313,7 +365,7 @@ const LoginPage: React.FC = () => {
 
               <motion.p 
                 whileHover={{ scale: 1.02 }}
-                className="text-center text-xs text-cyan-400/70 font-mono tracking-wider"
+                className="text-center text-xs text-cyan-400/70 font-share-tech-mono tracking-wider"
               >
                 NEW USER?{' '}
                 <Link
@@ -330,7 +382,7 @@ const LoginPage: React.FC = () => {
 
       {/* Terminal-like footer */}
       <div className="absolute bottom-4 left-0 right-0 text-center">
-        <p className="text-xs text-cyan-500/50 font-mono tracking-widest">
+        <p className="text-xs text-cyan-500/50 font-share-tech-mono tracking-widest">
           SYSTEM v3.1.4 | SECURITY PROTOCOL ACTIVE
         </p>
       </div>
