@@ -1,5 +1,4 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { 
   Clock, 
@@ -18,6 +17,37 @@ import { motion } from 'framer-motion';
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   
+  // Custom button components to replace the UI library Button
+  const PrimaryButton = ({ 
+    children, 
+    onClick, 
+    className = '',
+    ...props 
+  }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button
+      onClick={onClick}
+      className={`h-12 px-8 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white shadow-lg hover:shadow-yellow-500/30 transition-all rounded-md flex items-center justify-center text-lg ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+
+  const OutlineButton = ({ 
+    children, 
+    onClick, 
+    className = '',
+    ...props 
+  }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button
+      onClick={onClick}
+      className={`h-12 px-8 border border-white/30 bg-white/5 text-white hover:bg-white/10 hover:text-white backdrop-blur-sm rounded-md flex items-center justify-center text-lg ${className}`}
+      {...props}
+    >
+      {children}
+    </button>
+  );
+
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50">
       {/* Hero Section */}
@@ -41,22 +71,13 @@ const LandingPage: React.FC = () => {
                 Secure, reliable, and effortless attendance management for organizations of all sizes.
               </p>
               <div className="flex flex-wrap gap-4 pt-2">
-                <Button 
-                  size="lg" 
-                  onClick={() => navigate('/login')}
-                  className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white shadow-lg hover:shadow-yellow-500/30 transition-all"
-                >
+                <PrimaryButton onClick={() => navigate('/login')}>
                   Get Started
                   <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  onClick={() => document.getElementById('features')?.scrollIntoView({behavior: 'smooth'})}
-                  className="border-white/30 bg-white/5 text-white hover:bg-white/10 hover:text-white backdrop-blur-sm"
-                >
+                </PrimaryButton>
+                <OutlineButton onClick={() => document.getElementById('features')?.scrollIntoView({behavior: 'smooth'})}>
                   Explore Features
-                </Button>
+                </OutlineButton>
               </div>
               
               <div className="flex items-center gap-4 pt-8">
@@ -100,13 +121,9 @@ const LandingPage: React.FC = () => {
                       </div>
                     </div>
                     
-                    <Button 
-                      size="lg"
-                      onClick={() => navigate('/demo')}
-                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
-                    >
+                    <PrimaryButton onClick={() => navigate('/demo')}>
                       Try Demo
-                    </Button>
+                    </PrimaryButton>
                   </div>
                 </div>
               </div>
@@ -220,22 +237,13 @@ const LandingPage: React.FC = () => {
                 Join thousands of organizations worldwide that trust CheckInPro for reliable, secure attendance tracking.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
-                <Button 
-                  size="lg" 
-                  onClick={() => navigate('/login')}
-                  className="bg-white text-green-700 hover:bg-gray-100 shadow-lg px-8"
-                >
+                <PrimaryButton onClick={() => navigate('/login')}>
                   Get Started Free
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  onClick={() => window.location.href = "mailto:contact@checkinpro.com"}
-                  className="border-white text-white hover:bg-white/10 px-8"
-                >
+                </PrimaryButton>
+                <OutlineButton onClick={() => window.location.href = "mailto:contact@checkinpro.com"}>
                   <Mail className="mr-2 h-4 w-4" />
                   Contact Sales
-                </Button>
+                </OutlineButton>
               </div>
             </div>
           </div>
