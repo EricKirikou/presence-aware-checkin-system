@@ -1,94 +1,124 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
+  AppBar,
   Box,
+  CssBaseline,
+  Divider,
   Drawer,
+  IconButton,
   List,
   ListItem,
+  ListItemButton,
   ListItemIcon,
   ListItemText,
-  ListItemButton,
-  Typography,
-  IconButton,
   Toolbar,
-  AppBar,
-  CssBaseline,
+  Typography,
   useTheme
 } from '@mui/material';
 import {
   Dashboard as DashboardIcon,
   CheckCircle,
   Brightness4,
-  Brightness7
+  Brightness7,
+  Menu as MenuIcon,
+  ChevronLeft as ChevronLeftIcon
 } from '@mui/icons-material';
 import { useColorMode } from '../contexts/ColorModeContext';
 
-const drawerWidth = 240;
+const expandedWidth = 240;
+const collapsedWidth = 70;
 
 const SidebarLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const theme = useTheme();
   const { toggleColorMode } = useColorMode();
 
+  const toggleDrawer = () => {
+    setCollapsed(prev => !prev);
+  };
+
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
-      <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+
+      {/* AppBar */}
+      <AppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
-          <Typography variant="h6" noWrap component="div">
-            Presence Aware Check-in System
-          </Typography>
+          <Box display="flex" alignItems="center">
+            <IconButton color="inherit" edge="start" onClick={toggleDrawer} sx={{ mr: 2 }}>
+              {collapsed ? <MenuIcon /> : <ChevronLeftIcon />}
+            </IconButton>
+            {!collapsed && (
+              <Typography variant="h6" noWrap>
+                Presence Aware Check-in System
+              </Typography>
+            )}
+          </Box>
           <IconButton color="inherit" onClick={toggleColorMode}>
             {theme.palette.mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
           </IconButton>
         </Toolbar>
       </AppBar>
 
+      {/* Collapsible Drawer */}
       <Drawer
         variant="permanent"
         sx={{
-          width: drawerWidth,
+          width: collapsed ? collapsedWidth : expandedWidth,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: {
-            width: drawerWidth,
+          '& .MuiDrawer-paper': {
+            width: collapsed ? collapsedWidth : expandedWidth,
+            transition: 'width 0.3s',
+            overflowX: 'hidden',
             boxSizing: 'border-box',
           },
         }}
       >
         <Toolbar />
-        <Box sx={{ overflow: 'auto' }}>
-          <List>
-            <ListItem disablePadding>
-              <ListItemButton
-                component={Link}
-                to="/dashboard"
-                selected={location.pathname === '/dashboard'}
-              >
-                <ListItemIcon>
-                  <DashboardIcon />
-                </ListItemIcon>
-                <ListItemText primary="Dashboard" />
-              </ListItemButton>
-            </ListItem>
+        <Divider />
+        <List>
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              component={Link}
+              to="/dashboard"
+              selected={location.pathname === '/dashboard'}
+              sx={{ minHeight: 48, justifyContent: collapsed ? 'center' : 'initial', px: 2.5 }}
+            >
+              <ListItemIcon sx={{ minWidth: 0, mr: collapsed ? 0 : 2, justifyContent: 'center' }}>
+                <DashboardIcon />
+              </ListItemIcon>
+              {!collapsed && <ListItemText primary="Dashboard" />}
+            </ListItemButton>
+          </ListItem>
 
-            <ListItem disablePadding>
-              <ListItemButton
-                component={Link}
-                to="/check-in"
-                selected={location.pathname === '/check-in'}
-              >
-                <ListItemIcon>
-                  <CheckCircle />
-                </ListItemIcon>
-                <ListItemText primary="Check In" />
-              </ListItemButton>
-            </ListItem>
-          </List>
-        </Box>
+          <ListItem disablePadding sx={{ display: 'block' }}>
+            <ListItemButton
+              component={Link}
+              to="/check-in"
+              selected={location.pathname === '/check-in'}
+              sx={{ minHeight: 48, justifyContent: collapsed ? 'center' : 'initial', px: 2.5 }}
+            >
+              <ListItemIcon sx={{ minWidth: 0, mr: collapsed ? 0 : 2, justifyContent: 'center' }}>
+                <CheckCircle />
+              </ListItemIcon>
+              {!collapsed && <ListItemText primary="Check In" />}
+            </ListItemButton>
+          </ListItem>
+        </List>
       </Drawer>
 
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-        <Toolbar />
+      {/* Main Content */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          p: { xs: 2, md: 3 },
+          mt: 8,
+          transition: 'margin-left 0.3s',
+        }}
+      >
         {children}
       </Box>
     </Box>
