@@ -1,77 +1,95 @@
-import React, { useState } from 'react';
+// src/pages/CheckInPage.tsx
+import React, { useEffect, useRef, useState } from 'react';
 import {
   Box,
   Typography,
-  TextField,
-  Button,
   Paper,
   Alert,
   CircularProgress,
+  Button,
 } from '@mui/material';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:10000';
+import * as faceapi from 'face-api.js';
+import SidebarLayout from '../components/SidebarLayout';
+import DashboardHeader from '../components/DashboardHeader';
 
 const CheckInPage: React.FC = () => {
-  const [userId, setUserId] = useState('');
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [status, setStatus] = useState<'idle' | 'success' | 'error' | 'loading'>('idle');
   const [message, setMessage] = useState('');
 
-  const handleCheckIn = async () => {
-    if (!userId.trim()) return;
+  useEffect(() => {
+    const loadModels = async () => {
+      const MODEL_URL = '/models'; // Must be hosted publicly (move `models` folder to `public/`)
+      await Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+      ]);
+    };
 
-    setStatus('loading');
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/checkin`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId }),
-      });
-
-      const data = await response.json();
-      if (response.ok && data.success) {
-        setStatus('success');
-        setMessage(data.message || 'Check-in successful!');
-      } else {
-        throw new Error(data.message || 'Check-in failed.');
+    const startVideo = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+        if (videoRef.current) videoRef.current.srcObject = stream;
+      } catch (err) {
+        console.error('Error accessing webcam:', err);
       }
-    } catch (error: any) {
+    };
+
+    loadModels().then(startVideo);
+  }, []);
+
+  const handleCheckIn = async () => {
+    setStatus('loading');
+    setMessage('');
+
+    if (!videoRef.current) return;
+
+    const detections = await faceapi.detectSingleFace(
+      videoRef.current,
+      new faceapi.TinyFaceDetectorOptions()
+    );
+
+    if (detections) {
+      // Fake logic for face-recognition check-in
+      setStatus('success');
+      setMessage('Face detected. Check-in successful!');
+      // You can now POST this data to your backend
+    } else {
       setStatus('error');
-      setMessage(error.message);
+      setMessage('Face not recognized. Please try again.');
     }
   };
 
   return (
-    <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 500, mx: 'auto' }}>
-      <Paper sx={{ p: 4, borderRadius: 2 }}>
-        <Typography variant="h5" fontWeight="bold" mb={2}>
-          Check In
-        </Typography>
+    <SidebarLayout>
+      <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 600, mx: 'auto' }}>
+        <DashboardHeader />
 
-        {status === 'success' && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
-        {status === 'error' && <Alert severity="error" sx={{ mb: 2 }}>{message}</Alert>}
+        <Paper sx={{ p: 4, borderRadius: 2 }}>
+          <Typography variant="h5" fontWeight="bold" mb={2}>
+            Face Recognition Check-In
+          </Typography>
 
-        <TextField
-          label="User ID"
-          variant="outlined"
-          fullWidth
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
-          disabled={status === 'loading'}
-          sx={{ mb: 2 }}
-        />
+          {status === 'success' && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
+          {status === 'error' && <Alert severity="error" sx={{ mb: 2 }}>{message}</Alert>}
 
-        <Button
-          variant="contained"
-          color="primary"
-          fullWidth
-          onClick={handleCheckIn}
-          disabled={status === 'loading'}
-          startIcon={status === 'loading' ? <CircularProgress size={20} /> : null}
-        >
-          {status === 'loading' ? 'Checking in...' : 'Check In'}
-        </Button>
-      </Paper>
-    </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+            <video ref={videoRef} autoPlay muted width="100%" style={{ borderRadius: 8 }} />
+          </Box>
+
+          <Button
+            variant="contained"
+            fullWidth
+            onClick={handleCheckIn}
+            disabled={status === 'loading'}
+            startIcon={status === 'loading' ? <CircularProgress size={20} /> : null}
+          >
+            {status === 'loading' ? 'Checking face...' : 'Check In with Face'}
+          </Button>
+        </Paper>
+      </Box>
+    </SidebarLayout>
   );
 };
 
