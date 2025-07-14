@@ -10,14 +10,19 @@ import {
   ArrowRight,
   Mail,
   CalendarCheck,
-  Fingerprint
+  Fingerprint,
+  Twitter,
+  Facebook,
+  Linkedin,
+  Instagram,
+  Star
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   
-  // Custom button components to replace the UI library Button
+  // Custom button components with Montserrat font
   const PrimaryButton = ({ 
     children, 
     onClick, 
@@ -26,7 +31,7 @@ const LandingPage: React.FC = () => {
   }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
     <button
       onClick={onClick}
-      className={`h-12 px-8 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white shadow-lg hover:shadow-yellow-500/30 transition-all rounded-md flex items-center justify-center text-lg ${className}`}
+      className={`h-12 px-8 bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white shadow-lg hover:shadow-yellow-500/30 transition-all rounded-md flex items-center justify-center text-lg font-medium font-montserrat ${className}`}
       {...props}
     >
       {children}
@@ -41,7 +46,7 @@ const LandingPage: React.FC = () => {
   }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
     <button
       onClick={onClick}
-      className={`h-12 px-8 border border-white/30 bg-white/5 text-white hover:bg-white/10 hover:text-white backdrop-blur-sm rounded-md flex items-center justify-center text-lg ${className}`}
+      className={`h-12 px-8 border border-white/30 bg-white/5 text-white hover:bg-white/10 hover:text-white backdrop-blur-sm rounded-md flex items-center justify-center text-lg font-medium font-montserrat ${className}`}
       {...props}
     >
       {children}
@@ -49,7 +54,7 @@ const LandingPage: React.FC = () => {
   );
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50">
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-white to-gray-50 font-montserrat">
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-green-800 to-green-600 text-white py-24 overflow-hidden">
         {/* Decorative elements */}
@@ -67,7 +72,7 @@ const LandingPage: React.FC = () => {
                 </span><br />
                 With Biometric Verification
               </h1>
-              <p className="text-xl text-green-100 max-w-2xl">
+              <p className="text-xl text-green-100 max-w-2xl font-light">
                 Secure, reliable, and effortless attendance management for organizations of all sizes.
               </p>
               <div className="flex flex-wrap gap-4 pt-2">
@@ -90,9 +95,7 @@ const LandingPage: React.FC = () => {
                   <p className="font-medium">Trusted by 500+ organizations</p>
                   <div className="flex items-center gap-1 text-yellow-300">
                     {[1, 2, 3, 4, 5].map((star) => (
-                      <svg key={star} className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
+                      <Star key={star} className="w-4 h-4 fill-current" />
                     ))}
                     <span className="ml-1">5.0</span>
                   </div>
@@ -113,7 +116,7 @@ const LandingPage: React.FC = () => {
                       <Fingerprint className="w-12 h-12 text-yellow-400" />
                     </div>
                     <h3 className="text-2xl font-bold">Biometric Check-In</h3>
-                    <p className="text-green-100">Fast, secure verification with facial recognition</p>
+                    <p className="text-green-100 font-light">Fast, secure verification with facial recognition</p>
                     
                     <div className="w-full bg-black/20 rounded-lg overflow-hidden">
                       <div className="h-48 bg-gradient-to-b from-black/30 to-black/50 flex items-center justify-center">
@@ -142,7 +145,7 @@ const LandingPage: React.FC = () => {
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Everything You Need for <span className="text-green-600">Modern Attendance</span>
             </h2>
-            <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            <p className="text-lg text-gray-600 max-w-3xl mx-auto font-light">
               CheckInPro combines cutting-edge technology with intuitive design for seamless attendance management.
             </p>
           </div>
@@ -189,7 +192,7 @@ const LandingPage: React.FC = () => {
                   {feature.icon}
                 </div>
                 <h3 className="text-xl font-semibold mb-3 text-gray-900">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
+                <p className="text-gray-600 font-light">{feature.description}</p>
               </motion.div>
             ))}
           </div>
@@ -215,7 +218,7 @@ const LandingPage: React.FC = () => {
               </div>
               <div>
                 <p className="font-medium text-gray-900">John Doe</p>
-                <p className="text-gray-600">HR Director, TechCorp</p>
+                <p className="text-gray-600 font-light">HR Director, TechCorp</p>
               </div>
             </div>
           </div>
@@ -233,7 +236,7 @@ const LandingPage: React.FC = () => {
             
             <div className="relative z-10 max-w-3xl mx-auto">
               <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Transform Your Attendance System?</h2>
-              <p className="text-xl text-green-100 mb-8">
+              <p className="text-xl text-green-100 mb-8 font-light">
                 Join thousands of organizations worldwide that trust CheckInPro for reliable, secure attendance tracking.
               </p>
               <div className="flex flex-wrap justify-center gap-4">
@@ -255,20 +258,30 @@ const LandingPage: React.FC = () => {
         <div className="container mx-auto px-6">
           <div className="flex flex-col lg:flex-row justify-between gap-12">
             <div className="lg:w-1/3">
-              <h2 className="text-2xl font-bold mb-4">CheckInPro</h2>
-              <p className="text-gray-400 mb-6">
+              <div className="flex items-center mb-4">
+                <Fingerprint className="w-8 h-8 mr-2 text-green-400" />
+                <h2 className="text-2xl font-bold">CheckInPro</h2>
+              </div>
+              <p className="text-gray-400 mb-6 font-light">
                 The most advanced biometric attendance system for modern organizations.
               </p>
               <div className="flex space-x-4">
-                {['Twitter', 'Facebook', 'LinkedIn', 'Instagram'].map((social) => (
-                  <a 
-                    key={social} 
-                    href="#" 
-                    className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-700 transition-colors"
-                  >
-                    <span className="sr-only">{social}</span>
-                  </a>
-                ))}
+                <a href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">
+                  <Twitter className="w-5 h-5" />
+                  <span className="sr-only">Twitter</span>
+                </a>
+                <a href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">
+                  <Facebook className="w-5 h-5" />
+                  <span className="sr-only">Facebook</span>
+                </a>
+                <a href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">
+                  <Linkedin className="w-5 h-5" />
+                  <span className="sr-only">LinkedIn</span>
+                </a>
+                <a href="#" className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-700 transition-colors">
+                  <Instagram className="w-5 h-5" />
+                  <span className="sr-only">Instagram</span>
+                </a>
               </div>
             </div>
             
@@ -278,7 +291,7 @@ const LandingPage: React.FC = () => {
                 <ul className="space-y-3">
                   {['Features', 'Pricing', 'Demo', 'Integrations'].map((item) => (
                     <li key={item}>
-                      <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                      <a href="#" className="text-gray-400 hover:text-white transition-colors font-light">
                         {item}
                       </a>
                     </li>
@@ -291,7 +304,7 @@ const LandingPage: React.FC = () => {
                 <ul className="space-y-3">
                   {['About', 'Careers', 'Blog', 'Contact'].map((item) => (
                     <li key={item}>
-                      <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                      <a href="#" className="text-gray-400 hover:text-white transition-colors font-light">
                         {item}
                       </a>
                     </li>
@@ -304,7 +317,7 @@ const LandingPage: React.FC = () => {
                 <ul className="space-y-3">
                   {['Documentation', 'Help Center', 'API Status', 'Webinars'].map((item) => (
                     <li key={item}>
-                      <a href="#" className="text-gray-400 hover:text-white transition-colors">
+                      <a href="#" className="text-gray-400 hover:text-white transition-colors font-light">
                         {item}
                       </a>
                     </li>
@@ -315,13 +328,13 @@ const LandingPage: React.FC = () => {
           </div>
           
           <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
-            <p className="text-gray-400 mb-4 md:mb-0">
+            <p className="text-gray-400 mb-4 md:mb-0 font-light">
               &copy; {new Date().getFullYear()} CheckInPro. All rights reserved.
             </p>
             <div className="flex space-x-6">
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">Terms of Service</a>
-              <a href="#" className="text-gray-400 hover:text-white transition-colors">Cookies</a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors font-light">Privacy Policy</a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors font-light">Terms of Service</a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors font-light">Cookies</a>
             </div>
           </div>
         </div>

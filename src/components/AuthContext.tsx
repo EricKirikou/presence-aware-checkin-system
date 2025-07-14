@@ -1,14 +1,24 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+// src/components/AuthContext.tsx
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  Dispatch,
+  SetStateAction
+} from "react";
 
 export interface User {
-  id: string;
+  _id: string;
   name: string;
   email: string;
   role: string;
+  profileImage?: string;
 }
 
 interface AuthContextType {
   user: User | null;
+  setUser: Dispatch<SetStateAction<User | null>>;
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -28,18 +38,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedUser = localStorage.getItem("user");
 
     if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      try {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+      } catch (err) {
+        console.error("Error parsing user from localStorage:", err);
+        setToken(null);
+        setUser(null);
+      }
     }
     setIsLoading(false);
   }, []);
 
-  // Updated login to simply accept user & token
-  const login = (user: User, token: string) => {
-    setToken(token);
-    setUser(user);
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(user));
+  const login = (userData: User, tokenData: string) => {
+    setToken(tokenData);
+    setUser(userData);
+    localStorage.setItem("token", tokenData);
+    localStorage.setItem("user", JSON.stringify(userData));
   };
 
   const logout = () => {
@@ -50,14 +65,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      token, 
-      isAuthenticated: !!token, 
-      isLoading,
-      login, 
-      logout 
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        setUser,
+        token,
+        isAuthenticated: !!token,
+        isLoading,
+        login,
+        logout
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -65,6 +83,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
   return context;
 };

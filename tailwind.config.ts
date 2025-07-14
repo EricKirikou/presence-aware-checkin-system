@@ -16,8 +16,13 @@ export default {
       }
     },
     extend: {
+      fontFamily: {
+        montserrat: ["Montserrat", "sans-serif"],
+      },
       colors: {
-        // your color config unchanged
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        border: "hsl(var(--border))",      
       },
       borderRadius: {
         lg: 'var(--radius)',

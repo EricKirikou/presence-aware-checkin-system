@@ -1,13 +1,14 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&family=Press+Start+2P&display=swap');
 
 @layer base {
   :root {
-    --background: 0 0% 3%;
-    --foreground: 180 100% 90%;
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
     --card: 0 0% 5%;
     --card-foreground: 180 100% 90%;
     --popover: 0 0% 7%;
@@ -22,10 +23,10 @@
     --accent-foreground: 0 0% 100%;
     --destructive: 0 100% 50%;
     --destructive-foreground: 0 0% 100%;
-    --border: 180 100% 50%/0.2;
+    --border: 214.3 31.8% 91.4%;
     --input: 180 100% 50%/0.1;
     --ring: 180 100% 50%;
-    --radius: 0;
+    --radius: 0.5rem;
   }
 }
 
