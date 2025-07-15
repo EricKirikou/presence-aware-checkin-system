@@ -166,11 +166,11 @@ const Dashboard: React.FC = () => {
       console.error('Error fetching dashboard data:', error);
       setError(error.message);
       setStats({
-        totalEmployees: 124,
-        newEmployeesToday: 2,
-        onTimeCount: 98,
-        lateArrivals: 12,
-        earlyDepartures: 6,
+        totalEmployees: 0,
+        newEmployeesToday: 0,
+        onTimeCount: 0,
+        lateArrivals: 0,
+        earlyDepartures: 0,
         attendanceTrend: [],
         recentCheckIns: [],
       });
@@ -205,13 +205,53 @@ const Dashboard: React.FC = () => {
         {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
         <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }} gap={3} mb={4}>
-          <StatCard title="Total Employees" value={stats?.totalEmployees || 0} change={`${stats?.newEmployeesToday || 0} new today`} icon={<People />} trend="neutral" loading={loading} />
-          <StatCard title="On Time" value={stats?.onTimeCount || 0} change={`${stats?.onTimeCount ? Math.round((stats.onTimeCount / stats.totalEmployees) * 100) : 0}%`} icon={<Schedule />} trend="up" loading={loading} />
-          <StatCard title="Late Arrivals" value={stats?.lateArrivals || 0} change={`${stats?.lateArrivals ? Math.round((stats.lateArrivals / stats.totalEmployees) * 100) : 0}%`} icon={<Alarm />} trend="down" loading={loading} />
-          <StatCard title="Early Departures" value={stats?.earlyDepartures || 0} change={`${stats?.earlyDepartures ? Math.round((stats.earlyDepartures / stats.totalEmployees) * 100) : 0}%`} icon={<ExitToApp />} trend="down" loading={loading} />
+          <StatCard
+            title="Total Employees"
+            value={stats?.totalEmployees ?? '--'}
+            change={`${stats?.newEmployeesToday ?? 0} new today`}
+            icon={<People />}
+            trend="neutral"
+            loading={loading}
+          />
+          <StatCard
+            title="On Time"
+            value={stats?.onTimeCount ?? 0}
+            change={
+              stats?.totalEmployees
+                ? `${Math.round((stats.onTimeCount / stats.totalEmployees) * 100)}%`
+                : '0%'
+            }
+            icon={<Schedule />}
+            trend="up"
+            loading={loading}
+          />
+          <StatCard
+            title="Late Arrivals"
+            value={stats?.lateArrivals ?? 0}
+            change={
+              stats?.totalEmployees
+                ? `${Math.round((stats.lateArrivals / stats.totalEmployees) * 100)}%`
+                : '0%'
+            }
+            icon={<Alarm />}
+            trend="down"
+            loading={loading}
+          />
+          <StatCard
+            title="Early Departures"
+            value={stats?.earlyDepartures ?? 0}
+            change={
+              stats?.totalEmployees
+                ? `${Math.round((stats.earlyDepartures / stats.totalEmployees) * 100)}%`
+                : '0%'
+            }
+            icon={<ExitToApp />}
+            trend="down"
+            loading={loading}
+          />
         </Box>
 
-        {stats?.attendanceTrend && stats.attendanceTrend.length > 0 && (
+        {stats?.attendanceTrend?.length ? (
           <Paper sx={{ p: 3, borderRadius: 2, boxShadow: theme.shadows[2], mb: 4 }}>
             <Typography variant="h6" fontWeight="bold" mb={2}>Weekly Attendance Trend</Typography>
             <ResponsiveContainer width="100%" height={300}>
@@ -226,7 +266,7 @@ const Dashboard: React.FC = () => {
               </LineChart>
             </ResponsiveContainer>
           </Paper>
-        )}
+        ) : null}
 
         <RecentActivity records={stats?.recentCheckIns || []} loading={loading} error={error} />
 

@@ -18,6 +18,8 @@ import FacialRecognitionDashboard from "@/components/FacialRecognitionDashboard"
 import CheckInPage from "./pages/CheckInPage";
 import ProfilePage from "./pages/ProfilePage";
 import AttendanceRecordsPage from './pages/AttendanceRecordsPage';
+import BusinessHoursPage from './pages/BusinessHoursPage';
+
 
 
 import { ColorModeProvider } from "./contexts/ColorModeContext";
@@ -76,6 +78,7 @@ const App = () => {
               <Route path="/facial-recognition" element={<ProtectedRoute requiredRoles={['admin']}><FacialRecognitionDashboard /></ProtectedRoute>} />
               <Route path="/check-in" element={<ProtectedRoute><CheckInPage /></ProtectedRoute>} />
               <Route path="/404" element={<NotFound />} />
+              <Route path="/settings/business-hours" element={<BusinessHoursPage />} />
               <Route path="*" element={<Navigate to="/404" replace />} />
             </Routes>
           </BrowserRouter>

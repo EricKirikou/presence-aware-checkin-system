@@ -22,10 +22,11 @@ import {
   Brightness4,
   Brightness7,
   Menu as MenuIcon,
-  ChevronLeft as ChevronLeftIcon
+  ChevronLeft as ChevronLeftIcon,
+  Schedule,
 } from '@mui/icons-material';
 import { useColorMode } from '../contexts/ColorModeContext';
-import { useAuth } from '../components/AuthContext'; // ✅ Ensure this provides `user`
+import { useAuth } from './AuthContext';
 
 const expandedWidth = 240;
 const collapsedWidth = 70;
@@ -35,19 +36,19 @@ const SidebarLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const location = useLocation();
   const theme = useTheme();
   const { toggleColorMode } = useColorMode();
-  const { user } = useAuth(); // ✅ Get logged-in user
+  const { user } = useAuth();
 
   const toggleDrawer = () => {
     setCollapsed(prev => !prev);
   };
 
-  const isAdmin = user?.role === 'admin'; // ✅ Role check
+  const isAdmin = user?.role === 'admin';
 
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
 
-      {/* AppBar */}
+      {/* Top AppBar */}
       <AppBar position="fixed" sx={{ zIndex: theme.zIndex.drawer + 1 }}>
         <Toolbar sx={{ justifyContent: 'space-between' }}>
           <Box display="flex" alignItems="center">
@@ -66,7 +67,7 @@ const SidebarLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </Toolbar>
       </AppBar>
 
-      {/* Drawer */}
+      {/* Sidebar Drawer */}
       <Drawer
         variant="permanent"
         sx={{
@@ -83,7 +84,7 @@ const SidebarLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         <Toolbar />
         <Divider />
         <List>
-          {/* Only show Dashboard if user is admin */}
+          {/* Dashboard - only for admin */}
           {isAdmin && (
             <ListItem disablePadding sx={{ display: 'block' }}>
               <ListItemButton
@@ -100,7 +101,7 @@ const SidebarLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             </ListItem>
           )}
 
-          {/* Show Check In to all users */}
+          {/* Check In - visible to all */}
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton
               component={Link}
@@ -114,10 +115,27 @@ const SidebarLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               {!collapsed && <ListItemText primary="Check In" />}
             </ListItemButton>
           </ListItem>
+
+          {/* Business Hours - only for admin */}
+          {isAdmin && (
+            <ListItem disablePadding sx={{ display: 'block' }}>
+              <ListItemButton
+                component={Link}
+                to="/settings/business-hours"
+                selected={location.pathname === '/settings/business-hours'}
+                sx={{ minHeight: 48, justifyContent: collapsed ? 'center' : 'initial', px: 2.5 }}
+              >
+                <ListItemIcon sx={{ minWidth: 0, mr: collapsed ? 0 : 2, justifyContent: 'center' }}>
+                  <Schedule />
+                </ListItemIcon>
+                {!collapsed && <ListItemText primary="Business Hours" />}
+              </ListItemButton>
+            </ListItem>
+          )}
         </List>
       </Drawer>
 
-      {/* Main Content */}
+      {/* Main content area */}
       <Box
         component="main"
         sx={{
