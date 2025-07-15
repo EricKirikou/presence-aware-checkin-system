@@ -77,10 +77,17 @@ const LoginPage: React.FC = () => {
         return;
       }
 
-      const userWithId = { ...data.user, _id: data.user._id }; // Ensure _id is present
+      const userWithId = { ...data.user, _id: data.user._id };
       await login(userWithId, data.token);
       toast({ title: 'Login Successful', description: 'Welcome back!' });
-      navigate('/dashboard');
+
+      // 👇 Redirect based on role
+      if (data.user.role === 'admin') {
+        navigate('/dashboard');
+      } else {
+        navigate('/check-in');
+      }
+
     } catch (error) {
       setErrorMessage('Failed to connect to server');
       setShowErrorPopup(true);

@@ -25,6 +25,7 @@ import {
   ChevronLeft as ChevronLeftIcon
 } from '@mui/icons-material';
 import { useColorMode } from '../contexts/ColorModeContext';
+import { useAuth } from '../components/AuthContext'; // ✅ Ensure this provides `user`
 
 const expandedWidth = 240;
 const collapsedWidth = 70;
@@ -34,10 +35,13 @@ const SidebarLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const location = useLocation();
   const theme = useTheme();
   const { toggleColorMode } = useColorMode();
+  const { user } = useAuth(); // ✅ Get logged-in user
 
   const toggleDrawer = () => {
     setCollapsed(prev => !prev);
   };
+
+  const isAdmin = user?.role === 'admin'; // ✅ Role check
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -62,7 +66,7 @@ const SidebarLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </Toolbar>
       </AppBar>
 
-      {/* Collapsible Drawer */}
+      {/* Drawer */}
       <Drawer
         variant="permanent"
         sx={{
@@ -79,20 +83,24 @@ const SidebarLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         <Toolbar />
         <Divider />
         <List>
-          <ListItem disablePadding sx={{ display: 'block' }}>
-            <ListItemButton
-              component={Link}
-              to="/dashboard"
-              selected={location.pathname === '/dashboard'}
-              sx={{ minHeight: 48, justifyContent: collapsed ? 'center' : 'initial', px: 2.5 }}
-            >
-              <ListItemIcon sx={{ minWidth: 0, mr: collapsed ? 0 : 2, justifyContent: 'center' }}>
-                <DashboardIcon />
-              </ListItemIcon>
-              {!collapsed && <ListItemText primary="Dashboard" />}
-            </ListItemButton>
-          </ListItem>
+          {/* Only show Dashboard if user is admin */}
+          {isAdmin && (
+            <ListItem disablePadding sx={{ display: 'block' }}>
+              <ListItemButton
+                component={Link}
+                to="/dashboard"
+                selected={location.pathname === '/dashboard'}
+                sx={{ minHeight: 48, justifyContent: collapsed ? 'center' : 'initial', px: 2.5 }}
+              >
+                <ListItemIcon sx={{ minWidth: 0, mr: collapsed ? 0 : 2, justifyContent: 'center' }}>
+                  <DashboardIcon />
+                </ListItemIcon>
+                {!collapsed && <ListItemText primary="Dashboard" />}
+              </ListItemButton>
+            </ListItem>
+          )}
 
+          {/* Show Check In to all users */}
           <ListItem disablePadding sx={{ display: 'block' }}>
             <ListItemButton
               component={Link}

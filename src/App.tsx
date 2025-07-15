@@ -17,6 +17,8 @@ import Dashboard from "@/components/Dashboard";
 import FacialRecognitionDashboard from "@/components/FacialRecognitionDashboard";
 import CheckInPage from "./pages/CheckInPage";
 import ProfilePage from "./pages/ProfilePage";
+import AttendanceRecordsPage from './pages/AttendanceRecordsPage';
+
 
 import { ColorModeProvider } from "./contexts/ColorModeContext";
 import { AuthProvider, useAuth } from "./components/AuthContext";
@@ -70,6 +72,7 @@ const App = () => {
               <Route path="/signup" element={<SignupPage />} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+              <Route path="/records" element={<AttendanceRecordsPage />} />
               <Route path="/facial-recognition" element={<ProtectedRoute requiredRoles={['admin']}><FacialRecognitionDashboard /></ProtectedRoute>} />
               <Route path="/check-in" element={<ProtectedRoute><CheckInPage /></ProtectedRoute>} />
               <Route path="/404" element={<NotFound />} />
