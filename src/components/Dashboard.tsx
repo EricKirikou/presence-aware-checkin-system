@@ -1,53 +1,44 @@
-// src/components/Dashboard.tsx
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Typography,
-  Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableRow,
-  IconButton,
-  LinearProgress,
-  useTheme,
-  Avatar,
-  Chip,
-  Alert
-} from '@mui/material';
-import {
-  Refresh,
-  People,
-  Schedule,
-  Alarm,
-  ExitToApp,
-  ArrowUpward,
-  ArrowDownward
-} from '@mui/icons-material';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  PointElement,
+  LineElement,
+  Title,
   Tooltip,
-  CartesianGrid,
-  ResponsiveContainer,
   Legend
-} from 'recharts';
+} from 'chart.js';
+import { Bar, Pie, Line } from 'react-chartjs-2';
+import { format, parseISO } from 'date-fns';
+import axios from 'axios';
 import SidebarLayout from './SidebarLayout';
 import DashboardHeader from './DashboardHeader';
-import { useAuth } from './AuthContext';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:10000';
+// Register chart components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
-interface AttendanceRecord {
+interface CheckIn {
   id: string;
   userId: string;
   userName: string;
   userImage?: string;
   checkInTime: string;
-  status: 'on-time' | 'late' | 'early-departure' | 'absent';
+  checkOutTime?: string | null;
+  status: 'on-time' | 'late';
   department?: string;
 }
 
@@ -63,221 +54,227 @@ interface DashboardStats {
   onTimeCount: number;
   lateArrivals: number;
   earlyDepartures: number;
+  recentCheckIns: CheckIn[];
   attendanceTrend: AttendanceTrend[];
-  recentCheckIns: AttendanceRecord[];
 }
 
-const StatCard = ({ title, value, change, icon, trend, loading = false }: any) => {
-  const theme = useTheme();
-  return (
-    <Paper sx={{ p: 3, borderRadius: 2, minHeight: 150, display: 'flex', flexDirection: 'column', boxShadow: theme.shadows[2], position: 'relative' }}>
-      {loading && <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0 }} />}
-      <Box display="flex" alignItems="center" mb={2}>
-        <Avatar sx={{ bgcolor: theme.palette.mode === 'dark' ? 'primary.dark' : 'primary.light', color: 'primary.main', mr: 2 }}>
-          {icon}
-        </Avatar>
-        <Typography variant="subtitle1" fontWeight="medium">{title}</Typography>
-      </Box>
-      <Typography variant="h4" fontWeight="bold" sx={{ flexGrow: 1 }}>{loading ? '--' : value}</Typography>
-      <Box display="flex" alignItems="center" mt={1}>
-        {trend === 'up' ? <ArrowUpward color="success" fontSize="small" /> : trend === 'down' ? <ArrowDownward color="error" fontSize="small" /> : null}
-        <Typography variant="body2" color={trend === 'up' ? 'success.main' : trend === 'down' ? 'error.main' : 'text.secondary'} ml={0.5}>{change}</Typography>
-      </Box>
-    </Paper>
-  );
-};
-
-const RecentActivity = ({ records, loading, error }: any) => {
-  const theme = useTheme();
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'on-time': return 'success';
-      case 'late': return 'warning';
-      case 'early-departure': return 'error';
-      default: return 'default';
-    }
-  };
-
-  if (error) {
-    return <Paper sx={{ p: 3, borderRadius: 2, boxShadow: theme.shadows[2], mt: 3 }}><Alert severity="error">{error}</Alert></Paper>;
-  }
-
-  return (
-    <Paper sx={{ p: 3, borderRadius: 2, boxShadow: theme.shadows[2], mt: 3 }}>
-      <Typography variant="h6" fontWeight="bold" mb={2}>Recent Check-Ins</Typography>
-      {loading ? <LinearProgress /> : records.length === 0 ? <Typography color="text.secondary">No recent activity</Typography> : (
-        <TableContainer>
-          <Table>
-            <TableBody>
-              {records.map((record: AttendanceRecord) => (
-                <TableRow key={record.id}>
-                  <TableCell>
-                    <Box display="flex" alignItems="center">
-                      <Avatar
-                        sx={{ mr: 2, width: 40, height: 40 }}
-                        alt={record.userName}
-                        src={record.userImage || undefined}
-                      >
-                        {!record.userImage && record.userName?.charAt(0)}
-                      </Avatar>
-                      <Box>
-                        <Typography fontWeight="medium">{record.userName}</Typography>
-                        <Typography variant="body2" color="text.secondary">{record.department || 'No department'}</Typography>
-                      </Box>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Chip label={record.status.replace('-', ' ')} color={getStatusColor(record.status)} size="small" />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{new Date(record.checkInTime).toLocaleTimeString()}</Typography>
-                    <Typography variant="caption" color="text.secondary">{new Date(record.checkInTime).toLocaleDateString()}</Typography>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
-    </Paper>
-  );
-};
-
-const Dashboard: React.FC = () => {
-  const theme = useTheme();
-  const [loading, setLoading] = useState(true);
+const Dashboard = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [lastUpdated, setLastUpdated] = useState('');
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch(`${API_BASE_URL}/api/v1/stats/dashboard`);
-      if (!response.ok) throw new Error('Failed to fetch dashboard data');
-      const result = await response.json();
-      if (!result.success) throw new Error(result.message || 'Failed to load dashboard data');
-      setStats(result.data);
-      setLastUpdated(new Date().toLocaleTimeString());
-    } catch (err) {
-      const error = err as Error;
-      console.error('Error fetching dashboard data:', error);
-      setError(error.message);
-      setStats({
-        totalEmployees: 0,
-        newEmployeesToday: 0,
-        onTimeCount: 0,
-        lateArrivals: 0,
-        earlyDepartures: 0,
-        attendanceTrend: [],
-        recentCheckIns: [],
-      });
-      setLastUpdated(new Date().toLocaleTimeString());
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('today');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    const fetchStats = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/v1/stats/dashboard`);
+        setStats(response.data.data);
+        setError(null);
+      } catch (err: any) {
+        console.error('Failed to load dashboard stats:', err);
+        setError(err.response?.data?.message || 'Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, [timeRange]);
 
-  const now = new Date();
-  const timeString = now.toLocaleTimeString();
-  const dateString = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  if (loading) {
+    return (
+      <SidebarLayout>
+        <div className="flex justify-center items-center h-screen">
+          <div className="animate-spin w-12 h-12 border-4 border-blue-500 rounded-full border-t-transparent"></div>
+        </div>
+      </SidebarLayout>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <SidebarLayout>
+        <div className="text-center text-red-500 mt-10">
+          <p className="text-lg font-semibold">Error loading dashboard</p>
+          <p>{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 bg-blue-500 text-white px-4 py-2 rounded"
+          >
+            Retry
+          </button>
+        </div>
+      </SidebarLayout>
+    );
+  }
+
+  const {
+    totalEmployees,
+    newEmployeesToday,
+    onTimeCount,
+    lateArrivals,
+    earlyDepartures,
+    recentCheckIns,
+    attendanceTrend,
+  } = stats;
+
+  const barData = {
+    labels: ['On Time', 'Late', 'Early Departure'],
+    datasets: [{
+      label: 'Today',
+      data: [onTimeCount, lateArrivals, earlyDepartures],
+      backgroundColor: ['#4ade80', '#f87171', '#facc15']
+    }]
+  };
+
+  const pieData = {
+    labels: ['Total Employees', 'New Today'],
+    datasets: [{
+      data: [totalEmployees, newEmployeesToday],
+      backgroundColor: ['#60a5fa', '#a78bfa']
+    }]
+  };
+
+  const lineData = {
+    labels: attendanceTrend.map(t => format(parseISO(t.date), 'MMM dd')),
+    datasets: [
+      {
+        label: 'On Time (%)',
+        data: attendanceTrend.map(t => t.onTimePercentage),
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16,185,129,0.2)',
+        tension: 0.3
+      },
+      {
+        label: 'Late (%)',
+        data: attendanceTrend.map(t => t.latePercentage),
+        borderColor: '#ef4444',
+        backgroundColor: 'rgba(239,68,68,0.2)',
+        tension: 0.3
+      }
+    ]
+  };
 
   return (
     <SidebarLayout>
-      <Box sx={{ p: { xs: 2, md: 4 }, minHeight: '100vh', backgroundColor: 'background.default' }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={4} flexWrap="wrap">
-          <Box>
-            <Typography variant="h4" fontWeight="bold" mb={1}>Welcome, {user?.name || "User"} 👋</Typography>
-            <Typography variant="subtitle1" color="text.secondary">{dateString} • {timeString}</Typography>
-          </Box>
-          <Box display="flex" alignItems="center" gap={1}>
-            <IconButton onClick={fetchDashboardData} color="inherit" disabled={loading}><Refresh /></IconButton>
-            <DashboardHeader />
-          </Box>
-        </Box>
+      <div className="p-6 bg-gray-100 min-h-screen">
+        <DashboardHeader
+          title="Admin Dashboard"
+          subtitle="Overview of employee attendance"
+        />
 
-        {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+        {/* Stat cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <StatCard label="Total Employees" value={totalEmployees} />
+          <StatCard label="New Today" value={newEmployeesToday} color="text-indigo-600" />
+          <StatCard label="On Time" value={onTimeCount} color="text-green-600" />
+          <StatCard label="Late Arrivals" value={lateArrivals} color="text-red-600" />
+        </div>
 
-        <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }} gap={3} mb={4}>
-          <StatCard
-            title="Total Employees"
-            value={stats?.totalEmployees ?? '--'}
-            change={`${stats?.newEmployeesToday ?? 0} new today`}
-            icon={<People />}
-            trend="neutral"
-            loading={loading}
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <ChartBox title="Today's Attendance">
+            <Bar data={barData} options={{ responsive: true }} />
+          </ChartBox>
+          <ChartBox title="Employee Distribution">
+            <Pie data={pieData} options={{ responsive: true }} />
+          </ChartBox>
+        </div>
+
+        {/* Line Chart */}
+        <ChartBox title="Weekly Attendance Trend">
+          <Line
+            data={lineData}
+            options={{
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  max: 100,
+                  ticks: {
+                    callback(this, tickValue) {
+                      if (typeof tickValue === 'number') {
+                        return `${tickValue}%`;
+                      }
+                      return tickValue;
+                    }
+                  }
+                }
+              }
+
+            }}
           />
-          <StatCard
-            title="On Time"
-            value={stats?.onTimeCount ?? 0}
-            change={
-              stats?.totalEmployees
-                ? `${Math.round((stats.onTimeCount / stats.totalEmployees) * 100)}%`
-                : '0%'
-            }
-            icon={<Schedule />}
-            trend="up"
-            loading={loading}
-          />
-          <StatCard
-            title="Late Arrivals"
-            value={stats?.lateArrivals ?? 0}
-            change={
-              stats?.totalEmployees
-                ? `${Math.round((stats.lateArrivals / stats.totalEmployees) * 100)}%`
-                : '0%'
-            }
-            icon={<Alarm />}
-            trend="down"
-            loading={loading}
-          />
-          <StatCard
-            title="Early Departures"
-            value={stats?.earlyDepartures ?? 0}
-            change={
-              stats?.totalEmployees
-                ? `${Math.round((stats.earlyDepartures / stats.totalEmployees) * 100)}%`
-                : '0%'
-            }
-            icon={<ExitToApp />}
-            trend="down"
-            loading={loading}
-          />
-        </Box>
+        </ChartBox>
 
-        {stats?.attendanceTrend?.length ? (
-          <Paper sx={{ p: 3, borderRadius: 2, boxShadow: theme.shadows[2], mb: 4 }}>
-            <Typography variant="h6" fontWeight="bold" mb={2}>Weekly Attendance Trend</Typography>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={stats.attendanceTrend}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis unit="%" />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="onTimePercentage" name="On Time" stroke="#4caf50" />
-                <Line type="monotone" dataKey="latePercentage" name="Late" stroke="#ff9800" />
-              </LineChart>
-            </ResponsiveContainer>
-          </Paper>
-        ) : null}
-
-        <RecentActivity records={stats?.recentCheckIns || []} loading={loading} error={error} />
-
-        {lastUpdated && (
-          <Typography variant="caption" color="text.secondary" display="block" textAlign="right" mt={2}>
-            Last updated: {lastUpdated}
-          </Typography>
-        )}
-      </Box>
+        {/* Recent Check-ins */}
+        <div className="bg-white shadow rounded-lg p-6 mt-8">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Check-Ins</h3>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-100">
+                <tr>
+                  <th className="text-left px-4 py-2">Employee</th>
+                  <th className="text-left px-4 py-2">Department</th>
+                  <th className="text-left px-4 py-2">Check-In Time</th>
+                  <th className="text-left px-4 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {recentCheckIns.map((rec, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50">
+                    <td className="px-4 py-2 flex items-center gap-2">
+                      {rec.userImage && (
+                        <img src={rec.userImage} alt={rec.userName} className="w-8 h-8 rounded-full" />
+                      )}
+                      {rec.userName}
+                    </td>
+                    <td className="px-4 py-2">{rec.department || 'N/A'}</td>
+                    <td className="px-4 py-2">{format(new Date(rec.checkInTime), 'hh:mm a')}</td>
+                    <td className="px-4 py-2">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${rec.status === 'on-time'
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-red-100 text-red-700'
+                        }`}>
+                        {rec.status === 'on-time' ? 'On Time' : 'Late'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </SidebarLayout>
   );
 };
+
+const StatCard = ({
+  label,
+  value,
+  color = 'text-gray-800'
+}: {
+  label: string;
+  value: number;
+  color?: string;
+}) => (
+  <div className="bg-white p-4 rounded shadow">
+    <h4 className="text-sm text-gray-500">{label}</h4>
+    <p className={`text-2xl font-bold ${color}`}>{value}</p>
+  </div>
+);
+
+const ChartBox = ({
+  title,
+  children
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => (
+  <div className="bg-white p-6 rounded shadow">
+    <h3 className="text-lg font-semibold text-gray-800 mb-4">{title}</h3>
+    <div className="h-[320px]">{children}</div>
+  </div>
+);
 
 export default Dashboard;

@@ -8,7 +8,19 @@ import {
   CircularProgress,
   Tabs,
   Tab,
+  Card,
+  CardContent,
+  Chip,
+  Divider,
+  Stack,
 } from '@mui/material';
+import {
+  Face as FaceIcon,
+  Fingerprint as FingerprintIcon,
+  LocationOn as LocationIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
+} from '@mui/icons-material';
 import SidebarLayout from '../components/SidebarLayout';
 import DashboardHeader from '../components/DashboardHeader';
 import { useAuth } from '../components/AuthContext';
@@ -30,9 +42,6 @@ const CheckInPage: React.FC = () => {
   const [isCheckingOut, setIsCheckingOut] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  // Example condition to disable tabs (optional, adjust as needed)
-  const allDone = false; // or some logic to disable tabs
 
   useEffect(() => {
     loadModels();
@@ -196,41 +205,128 @@ const CheckInPage: React.FC = () => {
 
   return (
     <SidebarLayout>
-      <Box sx={{ p: 3, maxWidth: 600, mx: 'auto' }}>
+      <Box sx={{ p: 3, maxWidth: 800, mx: 'auto' }}>
         <DashboardHeader />
-        <Paper sx={{ p: 4, borderRadius: 2 }}>
-          <Typography variant="h5" fontWeight="bold" mb={2}>
-            {isCheckingOut ? 'Check Out' : 'Check In'}
+        
+        <Paper sx={{ 
+          p: 4, 
+          borderRadius: 3,
+          boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.08)',
+          mb: 3
+        }}>
+          <Typography variant="h5" fontWeight="bold" mb={2} sx={{ display: 'flex', alignItems: 'center' }}>
+            {isCheckingOut ? (
+              <>
+                <FingerprintIcon sx={{ mr: 1 }} />
+                Check Out
+              </>
+            ) : (
+              <>
+                <FingerprintIcon sx={{ mr: 1 }} />
+                Check In
+              </>
+            )}
           </Typography>
 
-          <Tabs value={tab} onChange={(e, val) => setTab(val)} sx={{ mb: 3 }}>
-            <Tab label="Face Recognition" disabled={false} />
-            <Tab label="Manual" disabled={false} />
+          <Tabs 
+            value={tab} 
+            onChange={(e, val) => setTab(val)} 
+            sx={{ mb: 3 }}
+            variant="fullWidth"
+          >
+            <Tab 
+              label="Face Recognition" 
+              icon={<FaceIcon />}
+              iconPosition="start"
+              sx={{ minHeight: 48 }}
+            />
+            <Tab 
+              label="Manual" 
+              icon={<FingerprintIcon />}
+              iconPosition="start"
+              sx={{ minHeight: 48 }}
+            />
           </Tabs>
 
           {status === 'success' && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              {message}
+            <Alert 
+              severity="success" 
+              sx={{ mb: 3 }}
+              icon={<CheckCircleIcon fontSize="inherit" />}
+            >
+              <Typography fontWeight="bold">{message}</Typography>
             </Alert>
           )}
           {status === 'error' && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {message}
+            <Alert 
+              severity="error" 
+              sx={{ mb: 3 }}
+              icon={<ErrorIcon fontSize="inherit" />}
+            >
+              <Typography fontWeight="bold">{message}</Typography>
             </Alert>
           )}
 
           {tab === 0 && (
             <Box>
-              <video ref={videoRef} autoPlay muted width="100%" style={{ borderRadius: 8 }} />
+              <Card sx={{ mb: 2, overflow: 'hidden' }}>
+                <Box sx={{ 
+                  position: 'relative',
+                  height: 300,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#f5f5f5'
+                }}>
+                  <video 
+                    ref={videoRef} 
+                    autoPlay 
+                    muted 
+                    width="100%"
+                    style={{ 
+                      height: '100%',
+                      objectFit: 'cover'
+                    }} 
+                  />
+                  {status === 'loading' && (
+                    <Box sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: 'rgba(0,0,0,0.5)',
+                      zIndex: 1
+                    }}>
+                      <CircularProgress color="inherit" />
+                    </Box>
+                  )}
+                </Box>
+                <CardContent>
+                  <Typography variant="body2" color="text.secondary">
+                    Position your face in the frame
+                  </Typography>
+                </CardContent>
+              </Card>
+              
               <Button
                 variant="contained"
                 fullWidth
-                sx={{ mt: 2 }}
+                size="large"
                 onClick={performFaceCheckIn}
                 disabled={status === 'loading'}
+                sx={{
+                  py: 1.5,
+                  borderRadius: 2,
+                  fontSize: '1rem',
+                  fontWeight: 'bold'
+                }}
               >
                 {status === 'loading' ? (
-                  <CircularProgress size={20} />
+                  <CircularProgress size={24} color="inherit" />
                 ) : isCheckingOut ? (
                   'Scan Face to Check Out'
                 ) : (
@@ -242,28 +338,67 @@ const CheckInPage: React.FC = () => {
 
           {tab === 1 && (
             <Box>
-              <Button
-                variant="contained"
-                fullWidth
-                onClick={() => handleAttendance('manual')}
-                disabled={status === 'loading'}
-              >
-                {status === 'loading' ? (
-                  'Submitting...'
-                ) : isCheckingOut ? (
-                  'Manual Check Out'
-                ) : (
-                  'Manual Check In'
-                )}
-              </Button>
+              <Card sx={{ mb: 2, p: 3 }}>
+                <Typography variant="body1" color="text.secondary" mb={2}>
+                  {isCheckingOut 
+                    ? 'You are about to manually check out from your current location'
+                    : 'You are about to manually check in from your current location'}
+                </Typography>
+                
+                <Stack direction="row" spacing={1} mb={3}>
+                  <Chip 
+                    icon={<LocationIcon />}
+                    label={locationName} 
+                    variant="outlined"
+                    sx={{ borderRadius: 1 }}
+                  />
+                  <Chip 
+                    label={new Date().toLocaleTimeString()} 
+                    variant="outlined"
+                    sx={{ borderRadius: 1 }}
+                  />
+                </Stack>
+                
+                <Divider sx={{ my: 2 }} />
+                
+                <Button
+                  variant="contained"
+                  fullWidth
+                  size="large"
+                  onClick={() => handleAttendance('manual')}
+                  disabled={status === 'loading'}
+                  sx={{
+                    py: 1.5,
+                    borderRadius: 2,
+                    fontSize: '1rem',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {status === 'loading' ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : isCheckingOut ? (
+                    'Confirm Manual Check Out'
+                  ) : (
+                    'Confirm Manual Check In'
+                  )}
+                </Button>
+              </Card>
             </Box>
           )}
 
-          {locationName && (
-            <Typography variant="caption" color="text.secondary" mt={2}>
-              Location: {locationName}
+          <Box sx={{ 
+            mt: 3,
+            p: 2,
+            backgroundColor: (theme) => theme.palette.grey[100],
+            borderRadius: 2,
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <LocationIcon color="primary" sx={{ mr: 1 }} />
+            <Typography variant="body2" color="text.secondary">
+              <strong>Current Location:</strong> {locationName || 'Unknown'}
             </Typography>
-          )}
+          </Box>
         </Paper>
       </Box>
     </SidebarLayout>

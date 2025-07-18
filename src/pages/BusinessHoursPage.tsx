@@ -6,8 +6,12 @@ import {
   Typography,
   Paper,
   CircularProgress,
-  Alert
+  Alert,
+  Stack,
+  Divider,
+  InputAdornment
 } from '@mui/material';
+import { Schedule as ScheduleIcon } from '@mui/icons-material';
 import SidebarLayout from '../components/SidebarLayout';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:10000';
@@ -19,7 +23,7 @@ const BusinessHoursPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
 
-  // 🔄 Fetch existing business hours
+  // 🔄 Fetch existing business hours (keep exactly the same)
   useEffect(() => {
     const fetchTimes = async () => {
       try {
@@ -59,7 +63,7 @@ const BusinessHoursPage: React.FC = () => {
     fetchTimes();
   }, []);
 
-  // 📝 Handle form submit
+  // 📝 Handle form submit (keep exactly the same)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -98,53 +102,115 @@ const BusinessHoursPage: React.FC = () => {
 
   return (
     <SidebarLayout>
-      <Box sx={{ maxWidth: 500, mx: 'auto', mt: 4 }}>
-        <Paper sx={{ p: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Set Business Hours
-          </Typography>
+      <Box sx={{ maxWidth: 500, mx: 'auto', my: 4 }}>
+        <Paper elevation={3} sx={{ 
+          p: 4, 
+          borderRadius: 3,
+          boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.08)'
+        }}>
+          <Stack direction="row" alignItems="center" spacing={2} mb={3}>
+            <ScheduleIcon color="primary" sx={{ fontSize: 32 }} />
+            <Typography variant="h5" fontWeight="bold">
+              Business Hours
+            </Typography>
+          </Stack>
+
+          <Divider sx={{ mb: 3 }} />
 
           {status && (
-            <Alert severity={status.type} sx={{ mb: 2 }}>
-              {status.message}
+            <Alert 
+              severity={status.type} 
+              sx={{ mb: 3 }}
+              icon={false} // Remove default icon for cleaner look
+            >
+              <Typography fontWeight="medium">{status.message}</Typography>
             </Alert>
           )}
 
           <form onSubmit={handleSubmit}>
-            <TextField
-              label="Start Time"
-              type="time"
-              fullWidth
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ step: 300 }}
-              sx={{ mb: 2 }}
-              required
-            />
+            <Stack spacing={3}>
+              <TextField
+                label="Opening Time"
+                type="time"
+                fullWidth
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ step: 300 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Typography color="text.secondary">🕗</Typography>
+                    </InputAdornment>
+                  ),
+                }}
+                variant="outlined"
+                size="medium"
+                required
+              />
 
-            <TextField
-              label="End Time"
-              type="time"
-              fullWidth
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              inputProps={{ step: 300 }}
-              sx={{ mb: 2 }}
-              required
-            />
+              <TextField
+                label="Closing Time"
+                type="time"
+                fullWidth
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                inputProps={{ step: 300 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Typography color="text.secondary">🕔</Typography>
+                    </InputAdornment>
+                  ),
+                }}
+                variant="outlined"
+                size="medium"
+                required
+              />
 
-            <Button
-              variant="contained"
-              color="primary"
-              type="submit"
-              disabled={loading}
-              fullWidth
-            >
-              {loading ? <CircularProgress size={24} color="inherit" /> : 'Save'}
-            </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                type="submit"
+                disabled={loading}
+                fullWidth
+                size="large"
+                sx={{
+                  py: 1.5,
+                  borderRadius: 2,
+                  fontSize: '1rem',
+                  fontWeight: 'bold',
+                  textTransform: 'none'
+                }}
+              >
+                {loading ? (
+                  <CircularProgress size={24} color="inherit" />
+                ) : (
+                  'Save Business Hours'
+                )}
+              </Button>
+            </Stack>
           </form>
+
+          {startTime && endTime && (
+            <Box sx={{ 
+              mt: 3,
+              p: 2,
+              backgroundColor: 'rgba(25, 118, 210, 0.08)',
+              borderRadius: 2,
+              borderLeft: '4px solid',
+              borderColor: 'primary.main'
+            }}>
+              <Typography variant="subtitle2" fontWeight="medium" mb={1}>
+                Current Hours
+              </Typography>
+              <Typography>
+                {new Date(`2000-01-01T${startTime}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {' '}
+                {new Date(`2000-01-01T${endTime}`).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </Typography>
+            </Box>
+          )}
         </Paper>
       </Box>
     </SidebarLayout>
