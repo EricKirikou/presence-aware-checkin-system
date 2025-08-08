@@ -1,5 +1,5 @@
 // src/App.tsx
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   BrowserRouter,
