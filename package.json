@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "vite",
+    "dev": "vite --host",
     "build": "rm -rf node_modules && npm install --force && vite build",
     "preview": "vite preview",
     "postinstall": "npx rimraf node_modules/.vite"
